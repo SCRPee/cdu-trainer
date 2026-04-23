@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CDU">
+<meta name="theme-color" content="#000000">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=B612+Mono:wght@400;700&display=swap" rel="stylesheet">
+<title>CDU Trainer</title>
+<style>
+/* ============================================================
+   CDU TRAINER — Photo-backed B737NG CDU
+   - cdu_photo.PNG is the real bezel/keys (screen area is transparent)
+   - Our interactive screen sits UNDER the photo, showing through
+   - Invisible buttons sit ON TOP, aligned to photo key positions
+   - Press = subtle dark overlay over the key
+   ============================================================ */
+:root{
+  --screen-bg:#000;
+  --cdu-white:#ffffff;
+  --cdu-cyan:#00d2d2;
+  --cdu-magenta:#ff4dff;
+  --cdu-green:#33ff33;
+  --cdu-shaded:#a8a8a8;
+  --press-shade: rgba(0,0,0,0.32);
+  --bg-page:#0a0a0a;
+}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+html,body{height:100%;margin:0;padding:0;background:var(--bg-page);overflow:hidden;font-family:'B612 Mono',ui-monospace,Menlo,Consolas,monospace;color:#ddd}
+
+body{
+  display:flex;align-items:center;justify-content:center;
+  padding: max(env(safe-area-inset-top), 6px)
+           max(env(safe-area-inset-right), 6px)
+           max(env(safe-area-inset-bottom), 6px)
+           max(env(safe-area-inset-left), 6px);
+}
+
+/* Landscape lock */
+.rotate-warning{display:none;position:fixed;inset:0;background:#000;color:#eee;align-items:center;justify-content:center;text-align:center;z-index:9999;padding:24px;font-size:16px;letter-spacing:.04em}
+@media (orientation:landscape){
+  .rotate-warning{display:flex}
+  .app{display:none!important}
+}
+
+/* ============================================================
+   CDU stage — size-to-fit, preserves 2088×3160 aspect
+   ============================================================ */
+.stage{
+  position:relative;
+  aspect-ratio: 2088 / 3160;
+  height: 100%;
+  max-height: 100vh;
+  max-width: 100vw;
+  margin: auto;
+  /* cap so the stage doesn't grow taller than viewport while being a bit narrower */
+}
+@media (min-aspect-ratio: 2088/3160){
+  .stage{ width:auto; height:100vh; }
+}
+@media (max-aspect-ratio: 2088/3160){
+  .stage{ width:100vw; height:auto; }
+}
+
+/* Reset button — outside the CDU, top-right corner of viewport */
+.reset-btn{
+  position:fixed;top:calc(env(safe-area-inset-top) + 8px);right:10px;
+  width:40px;height:40px;border-radius:50%;
+  background:#2c2c2c;color:#bbb;border:1px solid #444;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;line-height:1;
+  box-shadow:0 2px 5px rgba(0,0,0,.5);
+  z-index:50;cursor:pointer;
+}
+.reset-btn:active{background:#111;transform:scale(.94)}
+
+/* ============================================================
+   Interactive CDU screen (under the photo, visible through cutout)
+   Percentages come straight from the transparent region detection:
+     x: 303-1780/2088  →  14.51% to 85.25%   (w = 70.74%)
+     y: 211-1323/3160  →   6.68% to 41.87%   (h = 35.19%)
+   ============================================================ */
+.cdu-screen{
+  position:absolute;
+  left: 14.51%;
+  top:  6.68%;
+  width:  70.74%;
+  height: 35.19%;
+  background: var(--screen-bg);
+  z-index: 1;
+  overflow: hidden;
+
+  display:grid;
+  grid-template-rows: 1fr repeat(6, 2fr) 1.2fr;
+  padding: 2.2% 2.4%;
+  gap: 0.3%;
+  font-family: 'B612 Mono',ui-monospace,Menlo,Consolas,monospace;
+  font-weight:700;
+  color:var(--cdu-white);
+  letter-spacing:.06em;
+  line-height:1.1;
+  text-shadow:0 0 2px rgba(255,255,255,.18);
+  font-size: clamp(10px, 2.0vw, 22px);   /* scales with viewport */
+
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(255,255,255,0.015) 0 1px,
+    transparent 1px 2px
+  );
+}
+.cdu-screen > *{min-height:0;overflow:hidden}
+.screen-title{text-align:center;align-self:center;color:var(--cdu-white);white-space:pre}
+.screen-line{display:flex;justify-content:space-between;align-items:center;padding:0 4px;white-space:pre;min-width:0}
+.screen-line .left,.screen-line .right{color:var(--cdu-white);white-space:pre}
+.screen-scratchpad{
+  align-self:end;
+  padding:0 4px;
+  color:var(--cdu-white);
+  white-space:pre;
+  border-top:1px solid rgba(255,255,255,.04);
+  height:100%;
+  display:flex;align-items:center;
+}
+/* CDU page color helpers (future-proof) */
+.cdu-w{color:var(--cdu-white)}  .cdu-c{color:var(--cdu-cyan)}
+.cdu-m{color:var(--cdu-magenta)} .cdu-g{color:var(--cdu-green)}
+.cdu-sh{color:var(--cdu-shaded);background:rgba(255,255,255,.08)}
+
+/* ============================================================
+   Photo layer — on top of the screen, below the buttons
+   ============================================================ */
+.cdu-photo{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+  z-index:2;
+  -webkit-user-drag:none;
+  user-drag:none;
+}
+
+/* ============================================================
+   Touch overlay — invisible buttons positioned over the photo
+   ============================================================ */
+.btn{
+  position:absolute;
+  background:transparent;
+  border:0;
+  padding:0;
+  margin:0;
+  cursor:pointer;
+  z-index:3;
+  border-radius:6%/4%;           /* matches typical key rounding */
+  color:transparent;              /* hide inline text; photo shows label */
+  font:inherit;
+}
+.btn.num-btn,.btn.lsk-btn{border-radius:50%;}
+.btn.lsk-btn{border-radius:14%/22%;}
+.btn::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:transparent;
+  border-radius:inherit;
+  pointer-events:none;
+  transition: background .06s linear;
+}
+.btn:active::after,
+.btn.is-pressed::after{
+  background: var(--press-shade);
+}
+</style>
+</head>
+<body>
+
+<div class="rotate-warning">Please rotate to portrait orientation.</div>
+
+<button class="reset-btn" id="resetBtn" aria-label="Reset">⟲</button>
+
+<div class="stage" id="stage">
+
+  <!-- ============ INTERACTIVE SCREEN (shows through photo cutout) ============ -->
+  <div class="cdu-screen" id="screen">
+    <div class="screen-title">TRAINING EMRE</div>
+    <div class="screen-line"><span class="left"  id="line-0-L">------</span><span class="right" id="line-0-R">------</span></div>
+    <div class="screen-line"><span class="left"  id="line-1-L">------</span><span class="right" id="line-1-R">------</span></div>
+    <div class="screen-line"><span class="left"  id="line-2-L">------</span><span class="right" id="line-2-R">------</span></div>
+    <div class="screen-line"><span class="left"  id="line-3-L">------</span><span class="right" id="line-3-R">------</span></div>
+    <div class="screen-line"><span class="left"  id="line-4-L">------</span><span class="right" id="line-4-R">------</span></div>
+    <div class="screen-line"><span class="left"  id="line-5-L">------</span><span class="right" id="line-5-R">------</span></div>
+    <div class="screen-scratchpad" id="scratchpad"></div>
+  </div>
+
+  <!-- ============ PHOTO (bezel + all printed key caps) ============ -->
+  <img class="cdu-photo" src="cdu_photo.PNG" alt="B737NG CDU" draggable="false">
+
+  <!-- ============ TOUCH OVERLAY (invisible buttons at photo coords) ============ -->
+  <div class="overlay" id="overlay"></div>
+
+</div>
+
+<script>
+/* ============================================================
+   Button coordinates — measured from cdu_photo.PNG (2088×3160)
+   Each row: [id, x0, y0, x1, y1, kind]
+   kind: char|action|noop|lsk; with 'char' the payload is the char itself
+   ============================================================ */
+const IMG_W = 2088, IMG_H = 3160;
+
+const BUTTONS = [
+  /* ---- LSK LEFT ---- */
+  ['L1','lsk',  67,  356,  200,  450],
+  ['L2','lsk',  68,  506,  199,  600],
+  ['L3','lsk',  67,  655,  199,  749],
+  ['L4','lsk',  66,  804,  198,  899],
+  ['L5','lsk',  66,  954,  198, 1049],
+  ['L6','lsk',  65, 1104,  197, 1198],
+  /* ---- LSK RIGHT ---- */
+  ['R1','lsk',1885,  358, 2017,  453],
+  ['R2','lsk',1885,  508, 2017,  602],
+  ['R3','lsk',1885,  657, 2018,  752],
+  ['R4','lsk',1885,  806, 2018,  901],
+  ['R5','lsk',1885,  956, 2018, 1051],
+  ['R6','lsk',1886, 1106, 2018, 1202],
+
+  /* ---- Function row 1: INIT REF, RTE, CLB, CRZ, DES, BRT ---- */
+  ['INIT_REF','noop', 239,1453, 461,1600],
+  ['RTE'     ,'noop', 497,1454, 720,1600],
+  ['CLB'     ,'noop', 756,1454, 979,1601],
+  ['CRZ'     ,'noop',1015,1454,1238,1601],
+  ['DES'     ,'noop',1274,1454,1497,1601],
+  ['BRT'     ,'noop',1705,1412,1884,1590],
+
+  /* ---- Function row 2: MENU, LEGS, DEP ARR, HOLD, PROG, EXEC ---- */
+  ['MENU'    ,'noop', 238,1632, 461,1780],
+  ['LEGS'    ,'noop', 496,1633, 719,1780],
+  ['DEP_ARR' ,'noop', 755,1633, 978,1781],
+  ['HOLD'    ,'noop',1015,1633,1238,1781],
+  ['PROG'    ,'noop',1274,1633,1497,1781],
+  ['EXEC'    ,'noop',1562,1634,1784,1781],
+
+  /* ---- Row 3: N1 LIMIT, FIX  |  A B C D E ---- */
+  ['N1_LIMIT','noop', 237,1812, 460,1959],
+  ['FIX'     ,'noop', 495,1813, 719,1960],
+  ['A','char', 879,1871,1028,2018],
+  ['B','char',1080,1871,1229,2018],
+  ['C','char',1282,1872,1430,2019],
+  ['D','char',1482,1872,1631,2019],
+  ['E','char',1684,1872,1833,2019],
+
+  /* ---- Row 4: PREV PAGE, NEXT PAGE  |  F G H I J ---- */
+  ['PREV_PAGE','noop',236,1992,459,2140],
+  ['NEXT_PAGE','noop',495,1993,718,2140],
+  ['F','char', 879,2072,1027,2219],
+  ['G','char',1080,2073,1229,2220],
+  ['H','char',1281,2073,1430,2220],
+  ['I','char',1483,2073,1631,2220],
+  ['J','char',1684,2074,1833,2221],
+
+  /* ---- Row 5: BLANK, BLANK  |  K L M N O ---- */
+  ['BLANK_1','noop',235,2172, 458,2320],
+  ['BLANK_2','noop',494,2172, 717,2320],
+  ['K','char', 878,2274,1027,2422],
+  ['L','char',1079,2274,1229,2422],
+  ['M','char',1281,2275,1431,2422],
+  ['N','char',1483,2275,1631,2422],
+  ['O','char',1684,2275,1833,2423],
+
+  /* ---- Row 6: 1 2 3 ---- */
+  ['1','char', 253,2368, 386,2498],
+  ['2','char', 446,2368, 580,2499],
+  ['3','char', 640,2369, 774,2499],
+
+  /* ---- Row 7: 4 5 6  |  P Q R S T ---- */
+  ['4','char', 252,2541, 386,2672],
+  ['5','char', 446,2541, 579,2672],
+  ['6','char', 640,2542, 774,2672],
+  ['P','char', 877,2476,1027,2623],
+  ['Q','char',1079,2476,1229,2624],
+  ['R','char',1281,2476,1431,2624],
+  ['S','char',1483,2477,1632,2624],
+  ['T','char',1684,2477,1834,2625],
+
+  /* ---- Row 8: 7 8 9  |  U V W X Y ---- */
+  ['7','char', 250,2714, 386,2845],
+  ['8','char', 445,2715, 579,2846],
+  ['9','char', 639,2715, 773,2846],
+  ['U','char', 877,2678,1026,2827],
+  ['V','char',1079,2678,1229,2827],
+  ['W','char',1281,2679,1430,2827],
+  ['X','char',1482,2679,1633,2827],
+  ['Y','char',1684,2679,1834,2827],
+
+  /* ---- Row 9: . 0 +/-  |  Z SP DEL / CLR ---- */
+  ['.'    ,'char'  , 250,2887, 384,3020],
+  ['0'    ,'char'  , 444,2888, 578,3020],
+  ['PM'   ,'action', 638,2888, 773,3020],   /* +/-  */
+  ['Z'    ,'char'  , 876,2880,1026,3030],
+  ['SP'   ,'action',1078,2880,1228,3030],
+  ['DEL'  ,'action',1280,2881,1431,3031],
+  ['/'    ,'char'  ,1482,2881,1633,3031],
+  ['CLR'  ,'clr'   ,1683,2881,1835,3030],
+];
+
+/* ============================================================
+   Build overlay buttons (absolute-positioned in %)
+   ============================================================ */
+const overlay = document.getElementById('overlay');
+function pct(v, total){ return (v/total*100) + '%'; }
+
+for(const b of BUTTONS){
+  const [id, kind, x0, y0, x1, y1] = b;
+  const el = document.createElement('button');
+  el.className = 'btn';
+  if(kind === 'lsk') el.classList.add('lsk-btn');
+  // numeric circular hit shape
+  if(/^\d$/.test(id) || id === '.' || id === 'PM') el.classList.add('num-btn');
+  el.style.left   = pct(x0, IMG_W);
+  el.style.top    = pct(y0, IMG_H);
+  el.style.width  = pct(x1-x0, IMG_W);
+  el.style.height = pct(y1-y0, IMG_H);
+  el.setAttribute('aria-label', id);
+  el.dataset.kind = kind;
+  el.dataset.id   = id;
+  if(id === 'CLR') el.id = 'clrKey';
+  overlay.appendChild(el);
+}
+
+/* ============================================================
+   CDU state machine — unchanged behavior
+   ============================================================ */
+const SCRATCHPAD_MAX = 22;
+const CLR_HOLD_MS    = 1000;
+
+const state = {
+  scratchpad:'',
+  scratchpadIsMsg:false,
+  lines:Array.from({length:6},()=>({left:'',right:''})),
+  plusMinusActive:false,
+};
+
+const $scratchpad = document.getElementById('scratchpad');
+const $linesL = []; const $linesR = [];
+for(let i=0;i<6;i++){
+  $linesL.push(document.getElementById(`line-${i}-L`));
+  $linesR.push(document.getElementById(`line-${i}-R`));
+}
+
+function render(){
+  for(let i=0;i<6;i++){
+    $linesL[i].textContent = state.lines[i].left  === '' ? '------' : state.lines[i].left;
+    $linesR[i].textContent = state.lines[i].right === '' ? '------' : state.lines[i].right;
+  }
+  $scratchpad.textContent = state.scratchpad;
+}
+
+function appendChar(c){
+  if(state.scratchpadIsMsg){ state.scratchpad=''; state.scratchpadIsMsg=false; }
+  if(state.scratchpad.length >= SCRATCHPAD_MAX) return;
+  state.scratchpad += c;
+  state.plusMinusActive = false;
+  render();
+}
+
+function pressPlusMinus(){
+  if(state.scratchpadIsMsg){ state.scratchpad=''; state.scratchpadIsMsg=false; }
+  if(state.plusMinusActive && state.scratchpad.length>0){
+    const last = state.scratchpad.slice(-1);
+    if(last === '-' || last === '+'){
+      state.scratchpad = state.scratchpad.slice(0,-1) + (last === '-' ? '+' : '-');
+      render(); return;
+    }
+  }
+  if(state.scratchpad.length >= SCRATCHPAD_MAX) return;
+  state.scratchpad += '-';
+  state.plusMinusActive = true;
+  render();
+}
+
+function pressSpace(){ appendChar(' '); }
+
+function pressDelete(){
+  if(state.scratchpad === 'DELETE') return;
+  state.scratchpad = 'DELETE';
+  // "DELETE" is a functional command block, not typed text.
+  // Flagging it as msg means CLR (short) wipes the whole word at once,
+  // and any character/+/− input replaces it entirely. (Per FCOM.)
+  state.scratchpadIsMsg = true;
+  state.plusMinusActive = false;
+  render();
+}
+
+function clrShortPress(){
+  if(state.scratchpadIsMsg){
+    state.scratchpad=''; state.scratchpadIsMsg=false;
+  } else if(state.scratchpad.length>0){
+    state.scratchpad = state.scratchpad.slice(0,-1);
+  }
+  state.plusMinusActive = false;
+  render();
+}
+function clrLongPress(){
+  state.scratchpad=''; state.scratchpadIsMsg=false; state.plusMinusActive=false;
+  render();
+}
+
+function pressLSK(id){
+  const side = id[0];                       // 'L' or 'R'
+  const idx  = parseInt(id.slice(1),10) - 1;
+  if(idx<0||idx>5) return;
+  const slot = side === 'L' ? 'left' : 'right';
+  const lineVal = state.lines[idx][slot];
+
+  if(state.scratchpad === 'DELETE'){
+    state.lines[idx][slot] = '';
+    state.scratchpad = ''; state.scratchpadIsMsg = false; state.plusMinusActive = false;
+    render(); return;
+  }
+
+  const sp = state.scratchpad;
+  if(sp.length === 0 && lineVal.length === 0) return;
+
+  if(sp.length === 0){
+    // COPY line → scratchpad (line stays intact — FCOM behavior)
+    state.scratchpad = lineVal; state.scratchpadIsMsg = false;
+  } else {
+    // Scratchpad has text → overwrite line, scratchpad cleared
+    state.lines[idx][slot] = sp;
+    state.scratchpad = ''; state.scratchpadIsMsg = false;
+  }
+  state.plusMinusActive = false;
+  render();
+}
+
+function resetAll(){
+  state.scratchpad=''; state.scratchpadIsMsg=false; state.plusMinusActive=false;
+  state.lines = Array.from({length:6},()=>({left:'',right:''}));
+  render();
+}
+
+/* ============================================================
+   Event wiring — pointerdown for snappy iPad
+   ============================================================ */
+function flash(el){ el.classList.add('is-pressed'); setTimeout(()=>el.classList.remove('is-pressed'),70); }
+
+function dispatch(btn){
+  const kind = btn.dataset.kind;
+  const id   = btn.dataset.id;
+  if(kind === 'noop') return;
+  if(kind === 'lsk' ) return pressLSK(id);
+  if(kind === 'char') return appendChar(id);
+  if(kind === 'action'){
+    if(id === 'PM')  return pressPlusMinus();
+    if(id === 'SP')  return pressSpace();
+    if(id === 'DEL') return pressDelete();
+  }
+  // 'clr' handled separately via long-press logic below
+}
+
+overlay.querySelectorAll('.btn').forEach(btn=>{
+  btn.addEventListener('pointerdown',(e)=>{
+    e.preventDefault();
+    flash(btn);
+    if(btn.dataset.kind === 'clr') return;  // handled by CLR wiring
+    dispatch(btn);
+  });
+  btn.addEventListener('click', e=>e.preventDefault());
+});
+
+/* CLR — long-press ≥ 1s clears whole scratchpad, short-press backspaces */
+(function wireCLR(){
+  const clr = document.getElementById('clrKey');
+  if(!clr) return;
+  let longFired = false, holdTimer = null;
+  clr.addEventListener('pointerdown',(e)=>{
+    e.preventDefault();
+    longFired = false;
+    holdTimer = setTimeout(()=>{ longFired = true; clrLongPress(); }, CLR_HOLD_MS);
+  });
+  const finish = ()=>{
+    if(holdTimer){ clearTimeout(holdTimer); holdTimer = null; }
+    if(!longFired) clrShortPress();
+  };
+  const cancel = ()=>{ if(holdTimer){ clearTimeout(holdTimer); holdTimer = null; } longFired = true; };
+  clr.addEventListener('pointerup',   finish);
+  clr.addEventListener('pointercancel', cancel);
+  clr.addEventListener('pointerleave', cancel);
+})();
+
+document.getElementById('resetBtn').addEventListener('click', resetAll);
+document.addEventListener('gesturestart', e=>e.preventDefault());
+document.addEventListener('contextmenu', e=>e.preventDefault());
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+  });
+}
+
+render();
+
+/* Public hooks — future dictation mode / stats */
+window.CDU = {
+  getState: ()=> JSON.parse(JSON.stringify(state)),
+  setScratchpad: (s)=>{ state.scratchpad=String(s||''); state.scratchpadIsMsg=false; render(); },
+  reset: resetAll,
+  press: (id)=>{ const b = overlay.querySelector(`[data-id="${id}"]`); if(b){ flash(b); dispatch(b); } },
+};
+</script>
+</body>
+</html>
