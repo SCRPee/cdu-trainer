@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="CDU">
 <meta name="theme-color" content="#1a1a1a">
 <meta name="format-detection" content="telephone=no">
@@ -18,22 +18,18 @@
 <style>
 /* ============================================================
    CDU TRAINER — B737NG Scratchpad Typing PWA
-   Color tokens follow FCOM CDU Page Color definitions:
-     • black bg, white default, magenta active wpt/spd/alt,
-       cyan inactive RTE titles, green active state, shaded white mods
+   Color tokens follow FCOM CDU Page Color definitions
    ============================================================ */
 :root{
-  --bezel:#5a5a5a;
+  --bezel:#5e5e5e;
   --bezel-dark:#3d3d3d;
-  --bezel-edge:#2a2a2a;
-  --key-bg:#1a1a1a;
-  --key-bg-active:#0a0a0a;
-  --key-text:#e8e8e8;
-  --key-border:#0d0d0d;
-  --key-shadow:rgba(0,0,0,.6);
+  --bezel-edge:#1f1f1f;
+  --key-bg:#161616;
+  --key-bg-active:#050505;
+  --key-text:#ececec;
+  --key-border:#000;
   --screen-bg:#000;
-  --screen-frame:#111;
-  --screen-bezel:#2a2a2a;
+  --screen-bezel:#222;
   --cdu-white:#ffffff;
   --cdu-cyan:#00d2d2;
   --cdu-magenta:#ff4dff;
@@ -41,143 +37,177 @@
   --cdu-shaded:#a8a8a8;
   --cdu-amber:#ffb000;
   --annunciator-off:#3a3a3a;
-  --annunciator-msg:#ddd;
-  --lsk-bg:#1c1c1c;
+  --lsk-bg:#1a1a1a;
   --lsk-stripe:#5a5a5a;
   --bg-page:#1d1d1d;
   --reset-bg:#2c2c2c;
-  --reset-fg:#bbb;
 }
 
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation}
 html,body{height:100%;margin:0;padding:0;background:var(--bg-page);overflow:hidden;font-family:'B612 Mono',ui-monospace,Menlo,Consolas,monospace;color:#ddd}
 body{
-  display:flex;align-items:center;justify-content:center;
-  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  display:flex;align-items:flex-start;justify-content:center;
+  /* Reserve room for iOS status bar even outside PWA mode */
+  padding-top: max(env(safe-area-inset-top), 44px);
+  padding-bottom: max(env(safe-area-inset-bottom), 8px);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 /* Landscape lock */
 .rotate-warning{display:none;position:fixed;inset:0;background:#000;color:#eee;align-items:center;justify-content:center;text-align:center;z-index:9999;padding:24px;font-size:16px;letter-spacing:.04em}
-@media (orientation:landscape) and (max-height:820px){
+@media (orientation:landscape){
   .rotate-warning{display:flex}
   .app{display:none!important}
 }
 
-/* App container */
+/* ============================================================
+   APP CONTAINER
+   ============================================================ */
 .app{
   position:relative;
-  width:min(100vw,820px);
-  height:100vh;
-  display:flex;flex-direction:column;
-  align-items:center;justify-content:flex-start;
-  padding:8px 0 4px;
+  width:min(100vw, 720px);
+  display:flex;flex-direction:column;align-items:center;
 }
 
 /* Reset button — outside bezel, top-right of app */
 .reset-btn{
-  position:absolute;top:14px;right:14px;
+  position:absolute;top:-2px;right:8px;
   width:46px;height:46px;border-radius:50%;
-  background:var(--reset-bg);color:var(--reset-fg);
+  background:var(--reset-bg);color:#bbb;
   border:1px solid #444;
   display:flex;align-items:center;justify-content:center;
-  font-size:22px;line-height:1;
-  box-shadow:0 2px 4px rgba(0,0,0,.4);
+  font-size:24px;line-height:1;
+  box-shadow:0 2px 5px rgba(0,0,0,.5);
   z-index:10;cursor:pointer;
 }
-.reset-btn:active{background:#1a1a1a;transform:scale(.95)}
+.reset-btn:active{background:#111;transform:scale(.94)}
 
 /* ============================================================
-   BEZEL — physical CDU body
+   BEZEL — CDU body
    ============================================================ */
 .bezel{
-  width:min(96vw,640px);
+  width:100%;
   background:linear-gradient(180deg,var(--bezel) 0%,#525252 50%,var(--bezel-dark) 100%);
   border:2px solid var(--bezel-edge);
   border-radius:14px;
-  padding:18px 16px 16px;
+  padding:14px 14px 12px;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.08),
     inset 0 -1px 0 rgba(0,0,0,.3),
-    0 8px 18px rgba(0,0,0,.5);
+    0 8px 18px rgba(0,0,0,.55);
   display:flex;flex-direction:column;gap:14px;
-  /* keep aspect natural; height auto */
+  position:relative;
 }
-
-/* Mounting screws */
-.bezel::before,.bezel::after{
-  content:"";position:absolute;width:10px;height:10px;border-radius:50%;
-  background:radial-gradient(circle at 30% 30%,#888,#222);
+/* Two screw-head decorations top corners of screen */
+.screen-wrap::before,.screen-wrap::after{
+  content:"";position:absolute;top:6px;width:8px;height:8px;border-radius:50%;
+  background:radial-gradient(circle at 30% 30%,#aaa,#333);
+  box-shadow:inset 0 0 1px rgba(0,0,0,.6);
   pointer-events:none;
 }
+.screen-wrap::before{left:8px}
+.screen-wrap::after{right:8px}
 
 /* ============================================================
-   DISPLAY ROW — LSK left | screen | LSK right (with annunciators)
+   DISPLAY ROW — LSK | screen | LSK
+   ------------------------------------------------------------
+   Trick: LSK columns and the screen share the SAME 8-row grid
+   template (title / 6 lines / scratchpad). Empty cells (top &
+   bottom) on the LSK columns leave the LSK buttons exactly
+   aligned with the 6 line rows in the display.
    ============================================================ */
 .display-row{
   display:grid;
-  grid-template-columns:30px 1fr 30px;
+  grid-template-columns:32px 1fr 32px;
   gap:6px;
   align-items:stretch;
 }
 
 .lsk-col{
   display:grid;
-  grid-template-rows:repeat(6,1fr);
-  gap:8px;
-  padding:14px 0;
+  /* Match screen's grid: title (auto), 6 line rows, scratchpad (auto) */
+  grid-template-rows:1.4fr repeat(6, 2fr) 1.2fr;
+  gap:4px;
+  padding:4px 0;
 }
 .lsk{
-  position:relative;
-  background:var(--lsk-bg);
-  border:1px solid #0a0a0a;
+  background:repeating-linear-gradient(
+    180deg,
+    var(--lsk-stripe) 0 2px,
+    transparent 2px 6px
+  ),linear-gradient(180deg,#222,#0e0e0e);
+  border:1px solid #050505;
   border-radius:3px;
   width:100%;height:100%;
-  min-height:32px;
+  min-height:24px;
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,.12),
-    inset 0 -2px 3px rgba(0,0,0,.5);
-  /* Striped texture mimicking CDU LSK rocker */
-  background-image:repeating-linear-gradient(
-    180deg,
-    var(--lsk-stripe) 0 1px,
-    transparent 1px 4px
-  ),linear-gradient(180deg,#222,#0e0e0e);
+    inset 0 -2px 3px rgba(0,0,0,.55);
 }
-.lsk:active{background-color:var(--key-bg-active);transform:translateY(1px)}
+.lsk:active,.lsk.is-pressed{filter:brightness(.5);transform:translateY(1px)}
+/* spacers (top + bottom of LSK column) */
+.lsk-spacer{visibility:hidden}
 
-/* Screen container — frame around CRT */
+/* Screen wrap & screen */
 .screen-wrap{
   background:var(--screen-bezel);
   border:2px solid #000;
-  border-radius:6px;
-  padding:8px 10px;
+  border-radius:8px;
+  padding:18px 8px 8px;
   position:relative;
-  display:flex;align-items:stretch;justify-content:stretch;
+  display:flex;
+  min-height:0;
 }
 .screen{
   flex:1;
   background:var(--screen-bg);
-  border-radius:3px;
-  padding:8px 10px;
+  border-radius:4px;
+  padding:8px 12px;
+  display:grid;
+  grid-template-rows:1.4fr repeat(6, 2fr) 1.2fr;
+  gap:2px;
   font-family:'B612 Mono',ui-monospace,Menlo,Consolas,monospace;
   font-weight:700;
   color:var(--cdu-white);
-  font-size:clamp(10px,2.4vw,15px);
-  line-height:1.18;
+  font-size:clamp(11px,2.5vw,16px);
   letter-spacing:.06em;
-  white-space:pre;
-  overflow:hidden;
-  text-shadow:0 0 2px rgba(255,255,255,.15);
-  /* subtle scanlines */
+  text-shadow:0 0 2px rgba(255,255,255,.18);
   background-image:repeating-linear-gradient(
     0deg,
     rgba(255,255,255,0.015) 0 1px,
     transparent 1px 2px
   );
+  overflow:hidden;
 }
-/* Color spans inside screen text */
+
+.screen-title{
+  text-align:center;
+  align-self:center;
+  color:var(--cdu-white);
+  white-space:pre;
+}
+.screen-line{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:0 4px;
+  white-space:pre;
+  min-width:0;
+}
+.screen-line .left,.screen-line .right{color:var(--cdu-white);white-space:pre}
+.screen-line .left{text-align:left}
+.screen-line .right{text-align:right}
+.screen-scratchpad{
+  align-self:end;
+  padding:0 4px 2px;
+  color:var(--cdu-white);
+  white-space:pre;
+  min-height:1.2em;
+  border-top:1px solid rgba(255,255,255,.05);
+}
+
+/* Color spans inside screen (future-proof for magenta/cyan/etc.) */
 .cdu-w{color:var(--cdu-white)}
 .cdu-c{color:var(--cdu-cyan)}
 .cdu-m{color:var(--cdu-magenta)}
@@ -185,25 +215,25 @@ body{
 .cdu-sh{color:var(--cdu-shaded);background:rgba(255,255,255,.08)}
 .cdu-a{color:var(--cdu-amber)}
 
-/* Side annunciator labels (vertical text) */
+/* Side annunciator labels */
 .annunciator-side{
   position:absolute;font-size:8px;color:var(--annunciator-off);
-  font-weight:700;letter-spacing:.1em;
+  font-weight:700;letter-spacing:.12em;
   writing-mode:vertical-rl;text-orientation:upright;
   pointer-events:none;
 }
-.ann-msg{top:6%;right:-2px;color:var(--annunciator-off)}
-.ann-ofst{top:34%;right:-2px}
-.ann-call{top:6%;left:-2px}
-.ann-fail{top:34%;left:-2px;color:var(--annunciator-off)}
+.ann-msg{ top:14%;right:-3px}
+.ann-ofst{top:50%;right:-3px}
+.ann-call{top:14%;left:-3px}
+.ann-fail{top:50%;left:-3px}
 
 /* ============================================================
-   KEYPAD GRID — 8 columns
+   KEYPAD GRID — 8 columns, square keys, generous gap
    ============================================================ */
 .keypad{
   display:grid;
   grid-template-columns:repeat(8,1fr);
-  gap:6px;
+  gap:8px;
 }
 
 .key{
@@ -214,19 +244,18 @@ body{
   display:flex;align-items:center;justify-content:center;
   font-family:'B612 Mono',ui-monospace,Menlo,Consolas,monospace;
   font-weight:700;
-  font-size:clamp(9px,1.9vw,12px);
+  font-size:clamp(9px,1.7vw,12px);
   line-height:1;
   text-align:center;
   padding:0 2px;
-  min-height:44px;
+  aspect-ratio: 1 / 1;
   cursor:pointer;
   position:relative;
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.08),
+    inset 0 1px 0 rgba(255,255,255,.10),
     inset 0 -2px 3px rgba(0,0,0,.55),
     0 1px 1px rgba(0,0,0,.4);
   transition:background-color .04s linear,transform .04s linear;
-  -webkit-user-select:none;user-select:none;
   letter-spacing:.04em;
 }
 .key:active,.key.is-pressed{
@@ -236,67 +265,57 @@ body{
     inset 0 2px 4px rgba(0,0,0,.7),
     0 0 0 1px rgba(255,255,255,.04);
 }
-.key.fn{font-size:clamp(8px,1.6vw,10.5px)}
-.key.alpha{font-size:clamp(12px,2.4vw,15px)}
+.key.fn{font-size:clamp(8px,1.4vw,10.5px)}
+.key.alpha{font-size:clamp(13px,2.2vw,16px)}
 .key.num{
-  font-size:clamp(13px,2.5vw,16px);
+  font-size:clamp(13px,2.3vw,17px);
   border-radius:50%;
   background:radial-gradient(circle at 35% 30%,#2a2a2a,#0a0a0a 75%);
+  border:1px solid #000;
 }
 .key.num:active{background:radial-gradient(circle at 35% 30%,#1a1a1a,#000 75%)}
-.key.misc{font-size:clamp(10px,2vw,13px)}
-.key.exec{
-  background:var(--key-bg);
-  position:relative;
-}
-.key.exec::after{
-  content:"";position:absolute;top:-7px;left:50%;transform:translateX(-50%);
-  width:60%;height:3px;border-radius:1px;background:#1a1a1a;border:1px solid #000;
-}
+.key.misc{font-size:clamp(10px,1.8vw,13px)}
 
-/* Two-line legends like INIT/REF, DEP/ARR, N1/LIMIT, PREV/PAGE */
 .key .legend{display:flex;flex-direction:column;align-items:center;line-height:1;gap:1px}
 
-/* BRT knob */
+/* BRT knob (same cell size as a key) */
 .brt-knob{
-  background:radial-gradient(circle at 35% 30%,#2a2a2a,#0a0a0a 75%);
+  background:radial-gradient(circle at 35% 30%,#3a3a3a,#0a0a0a 75%);
   border-radius:50%;
   border:1px solid #000;
   box-shadow:
     inset 0 2px 4px rgba(255,255,255,.08),
     inset 0 -3px 5px rgba(0,0,0,.6);
   position:relative;
-  min-height:44px;
+  aspect-ratio: 1 / 1;
 }
 .brt-knob::after{
-  content:"BRT";position:absolute;top:-12px;left:50%;transform:translateX(-50%);
-  font-size:9px;color:#bbb;letter-spacing:.1em;
+  content:"BRT";position:absolute;top:-13px;left:50%;transform:translateX(-50%);
+  font-size:9px;color:#cfcfcf;letter-spacing:.12em;
 }
 
-/* EXEC light */
+/* EXEC light annunciator (small white bar above EXEC key) */
+.exec-cell{display:flex;flex-direction:column;align-items:stretch;gap:2px;aspect-ratio: 1 / 1}
 .exec-light{
   background:#0a0a0a;border:1px solid #000;border-radius:2px;
-  min-height:8px;margin-bottom:2px;
+  height:6px;flex:0 0 auto;
 }
+.key.exec{aspect-ratio:auto;flex:1;font-size:clamp(9px,1.6vw,11.5px)}
 
 /* Plain spacer cell (no key) */
 .spacer{visibility:hidden}
 
-/* ============================================================
-   FOOTER label like FCOM "FORWARD ELECTRONIC PANEL (MCDU)"
-   ============================================================ */
+/* Footer label */
 .bezel-label{
   text-align:center;color:#cfcfcf;
-  font-size:10px;letter-spacing:.18em;
+  font-size:9px;letter-spacing:.18em;
   margin-top:2px;font-weight:700;
 }
 
 /* Smaller iPad mini portrait */
-@media (max-height:740px){
+@media (max-height:780px){
   .bezel{padding:10px 10px 10px;gap:8px}
-  .key{min-height:38px}
-  .lsk{min-height:26px}
-  .keypad{gap:4px}
+  .keypad{gap:6px}
 }
 </style>
 </head>
@@ -305,21 +324,23 @@ body{
 <div class="rotate-warning">Please rotate to portrait orientation.</div>
 
 <div class="app">
-  <button class="reset-btn" id="resetBtn" aria-label="Reset" title="Reset">⟲</button>
+  <button class="reset-btn" id="resetBtn" aria-label="Reset">⟲</button>
 
   <div class="bezel" id="bezel">
 
     <!-- ============ DISPLAY ROW ============ -->
     <div class="display-row">
 
-      <!-- Left LSK column with CALL/FAIL annunciators -->
-      <div class="lsk-col" id="lskLeft">
+      <!-- Left LSK column: spacer / 6 LSKs / spacer (matches screen grid) -->
+      <div class="lsk-col">
+        <div class="lsk-spacer"></div>
         <div class="lsk" data-lsk="L1" aria-label="LSK L1"></div>
         <div class="lsk" data-lsk="L2" aria-label="LSK L2"></div>
         <div class="lsk" data-lsk="L3" aria-label="LSK L3"></div>
         <div class="lsk" data-lsk="L4" aria-label="LSK L4"></div>
         <div class="lsk" data-lsk="L5" aria-label="LSK L5"></div>
         <div class="lsk" data-lsk="L6" aria-label="LSK L6"></div>
+        <div class="lsk-spacer"></div>
       </div>
 
       <!-- Screen -->
@@ -328,17 +349,46 @@ body{
         <span class="annunciator-side ann-fail">FAIL</span>
         <span class="annunciator-side ann-msg">MSG</span>
         <span class="annunciator-side ann-ofst">OFST</span>
-        <div class="screen" id="screen" aria-live="polite"></div>
+        <div class="screen" id="screen">
+          <div class="screen-title">TRAINING EMRE</div>
+          <div class="screen-line" data-row="0">
+            <span class="left"  id="line-0-L">------</span>
+            <span class="right" id="line-0-R">------</span>
+          </div>
+          <div class="screen-line" data-row="1">
+            <span class="left"  id="line-1-L">------</span>
+            <span class="right" id="line-1-R">------</span>
+          </div>
+          <div class="screen-line" data-row="2">
+            <span class="left"  id="line-2-L">------</span>
+            <span class="right" id="line-2-R">------</span>
+          </div>
+          <div class="screen-line" data-row="3">
+            <span class="left"  id="line-3-L">------</span>
+            <span class="right" id="line-3-R">------</span>
+          </div>
+          <div class="screen-line" data-row="4">
+            <span class="left"  id="line-4-L">------</span>
+            <span class="right" id="line-4-R">------</span>
+          </div>
+          <div class="screen-line" data-row="5">
+            <span class="left"  id="line-5-L">------</span>
+            <span class="right" id="line-5-R">------</span>
+          </div>
+          <div class="screen-scratchpad" id="scratchpad"></div>
+        </div>
       </div>
 
-      <!-- Right LSK column with MSG/OFST annunciators -->
-      <div class="lsk-col" id="lskRight">
+      <!-- Right LSK column -->
+      <div class="lsk-col">
+        <div class="lsk-spacer"></div>
         <div class="lsk" data-lsk="R1" aria-label="LSK R1"></div>
         <div class="lsk" data-lsk="R2" aria-label="LSK R2"></div>
         <div class="lsk" data-lsk="R3" aria-label="LSK R3"></div>
         <div class="lsk" data-lsk="R4" aria-label="LSK R4"></div>
         <div class="lsk" data-lsk="R5" aria-label="LSK R5"></div>
         <div class="lsk" data-lsk="R6" aria-label="LSK R6"></div>
+        <div class="lsk-spacer"></div>
       </div>
 
     </div><!-- /display-row -->
@@ -346,25 +396,27 @@ body{
     <!-- ============ KEYPAD ============ -->
     <div class="keypad" id="keypad">
 
-      <!-- Row 1: INIT REF | RTE | CLB | CRZ | DES | . | BRT(span2) -->
+      <!-- Row 1: INIT REF | RTE | CLB | CRZ | DES | (gap) (gap) | BRT -->
       <button class="key fn" data-noop><span class="legend"><span>INIT</span><span>REF</span></span></button>
       <button class="key fn" data-noop>RTE</button>
       <button class="key fn" data-noop>CLB</button>
       <button class="key fn" data-noop>CRZ</button>
       <button class="key fn" data-noop>DES</button>
       <div class="spacer"></div>
-      <div class="brt-knob" style="grid-column:span 2"></div>
+      <div class="spacer"></div>
+      <div class="brt-knob"></div>
 
-      <!-- Row 2: MENU | LEGS | DEP ARR | HOLD | PROG | . | EXEC(span2) -->
+      <!-- Row 2: MENU | LEGS | DEP ARR | HOLD | PROG | (gap) (gap) | EXEC -->
       <button class="key fn" data-noop>MENU</button>
       <button class="key fn" data-noop>LEGS</button>
       <button class="key fn" data-noop><span class="legend"><span>DEP</span><span>ARR</span></span></button>
       <button class="key fn" data-noop>HOLD</button>
       <button class="key fn" data-noop>PROG</button>
       <div class="spacer"></div>
-      <div style="grid-column:span 2;display:flex;flex-direction:column">
+      <div class="spacer"></div>
+      <div class="exec-cell">
         <div class="exec-light"></div>
-        <button class="key fn exec" data-noop style="flex:1">EXEC</button>
+        <button class="key fn exec" data-noop>EXEC</button>
       </div>
 
       <!-- Row 3: N1 LIMIT | FIX | spacer | A B C D E -->
@@ -437,22 +489,16 @@ body{
 /* ============================================================
    CDU TRAINER — Application Logic
    ------------------------------------------------------------
-   State (kept minimal & explicit so future modes — dictation,
-   error stats — can hook in without refactoring core):
+   Stable DOM: line/scratchpad text nodes are pre-rendered.
+   We only update textContent, never re-write innerHTML — so
+   the layout never shifts and the scratchpad stays fixed at
+   the bottom of the screen.
 
-     state.scratchpad       string  current scratchpad text
-     state.scratchpadIsMsg  bool    true if scratchpad currently
-                                    holds a system message (so CLR
-                                    short-press clears it instead
-                                    of backspacing user text)
-     state.lines[i]         {left, right}  i = 0..5  (LSK 1..6)
-     state.plusMinusActive  bool    last keypress was +/- so the
-                                    next +/- toggles instead of
-                                    appending
+   Events: pointerdown (not click) for snappy iPad response and
+   to avoid iOS missing taps that get classified as scrolls.
    ============================================================ */
 
-const SCRATCHPAD_MAX = 23;   // CDU scratchpad max characters (24 cols, leave 1 margin)
-const LINE_WIDTH     = 24;   // characters per display line
+const SCRATCHPAD_MAX = 22;   // CDU scratchpad max characters
 const CLR_HOLD_MS    = 1000; // CLR long-press threshold
 
 /* ---------------- State ---------------- */
@@ -463,72 +509,27 @@ const state = {
   plusMinusActive:false,
 };
 
-/* ---------------- Pure helpers ---------------- */
-function pad(s,n){ s=s||''; if(s.length>=n) return s.slice(0,n); return s+' '.repeat(n-s.length); }
-function escHTML(s){ return (s||'').replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
-/** Build one display line: left content, right content, padded to LINE_WIDTH. */
-function fmtLine(left,right){
-  const l = (left||'').slice(0,LINE_WIDTH);
-  const r = (right||'').slice(0,LINE_WIDTH);
-  const space = Math.max(1, LINE_WIDTH - l.length - r.length);
-  return l + ' '.repeat(space) + r;
-}
-function centerLine(s){
-  s = (s||'').slice(0,LINE_WIDTH);
-  const pad = Math.floor((LINE_WIDTH - s.length)/2);
-  return ' '.repeat(Math.max(0,pad)) + s;
+/* ---------------- DOM refs ---------------- */
+const $scratchpad = document.getElementById('scratchpad');
+const $linesL = []; const $linesR = [];
+for(let i=0;i<6;i++){
+  $linesL.push(document.getElementById(`line-${i}-L`));
+  $linesR.push(document.getElementById(`line-${i}-R`));
 }
 
 /* ---------------- Rendering ---------------- */
-const screenEl = document.getElementById('screen');
-
-/**
- * Render the full CDU display. The display has 14 rows:
- *   0  page title
- *   1  blank
- *   2  L1/R1 line title (blank for now)
- *   3  L1/R1 data
- *   4  L2 title
- *   5  L2 data
- *   ...
- *   12 L6 title
- *   13 L6 data
- *   14 scratchpad (we keep it on its own line at the bottom)
- *
- * We use HTML spans for color. Empty lines render as dashes
- * per FCOM CDU Page Components #7 ("Dashes — Data input is optional").
- */
 function render(){
-  const lines = [];
-
-  // Row 0: Page title — white, centered
-  lines.push(`<span class="cdu-w">${escHTML(centerLine('TRAINING EMRE'))}</span>`);
-  // Row 1: blank
-  lines.push('');
-
-  // Six L/R rows. Each pair = (blank title row, data row).
-  // We show an empty title for now; data row uses dashes if both sides empty
-  // (mimics FCOM page components #7).
   for(let i=0;i<6;i++){
-    lines.push(''); // line title placeholder
     const L = state.lines[i].left;
     const R = state.lines[i].right;
-    let leftText  = L === '' ? '------' : L;
-    let rightText = R === '' ? '------' : R;
-    lines.push(`<span class="cdu-w">${escHTML(fmtLine(leftText,rightText))}</span>`);
+    $linesL[i].textContent = L === '' ? '------' : L;
+    $linesR[i].textContent = R === '' ? '------' : R;
   }
-
-  // Row 14: scratchpad
-  // Left-justified, white. Empty = blank line.
-  const sp = state.scratchpad;
-  lines.push(`<span class="cdu-w">${escHTML(sp)}</span>`);
-
-  screenEl.innerHTML = lines.join('\n');
+  $scratchpad.textContent = state.scratchpad;
 }
 
 /* ---------------- Scratchpad mutators ---------------- */
 function appendChar(c){
-  // If scratchpad currently holds a system message, typing replaces it.
   if(state.scratchpadIsMsg){ state.scratchpad=''; state.scratchpadIsMsg=false; }
   if(state.scratchpad.length >= SCRATCHPAD_MAX) return;
   state.scratchpad += c;
@@ -538,14 +539,11 @@ function appendChar(c){
 
 function pressPlusMinus(){
   if(state.scratchpadIsMsg){ state.scratchpad=''; state.scratchpadIsMsg=false; }
-  // First push: append "-".
-  // Subsequent pushes (i.e., last char is the +/- we just placed): toggle it.
   if(state.plusMinusActive && state.scratchpad.length>0){
     const last = state.scratchpad.slice(-1);
     if(last === '-' || last === '+'){
       state.scratchpad = state.scratchpad.slice(0,-1) + (last === '-' ? '+' : '-');
-      render();
-      return;
+      render(); return;
     }
   }
   if(state.scratchpad.length >= SCRATCHPAD_MAX) return;
@@ -557,16 +555,13 @@ function pressPlusMinus(){
 function pressSpace(){ appendChar(' '); }
 
 function pressDelete(){
-  // DEL puts literal DELETE in the scratchpad.
-  if(state.scratchpad === 'DELETE'){ return; }
+  if(state.scratchpad === 'DELETE') return;
   state.scratchpad = 'DELETE';
-  state.scratchpadIsMsg = false; // DELETE is data, not a system msg
+  state.scratchpadIsMsg = false;
   state.plusMinusActive = false;
   render();
 }
 
-/* CLR — short press: clear msg (if any) else backspace one char.
-        long press (≥1s): clear entire scratchpad. */
 function clrShortPress(){
   if(state.scratchpadIsMsg){
     state.scratchpad=''; state.scratchpadIsMsg=false;
@@ -582,45 +577,36 @@ function clrLongPress(){
 }
 
 /* ---------------- LSK logic ---------------- */
-// id is "L1".."L6" or "R1".."R6"
 function pressLSK(id){
-  const side = id[0]; // L or R
-  const idx  = parseInt(id.slice(1),10) - 1; // 0..5
+  const side = id[0];
+  const idx  = parseInt(id.slice(1),10) - 1;
   if(idx<0||idx>5) return;
-  const lineSlot = side === 'L' ? 'left' : 'right';
-  const lineVal  = state.lines[idx][lineSlot];
+  const slot = side === 'L' ? 'left' : 'right';
+  const lineVal  = state.lines[idx][slot];
 
-  // DELETE-in-scratchpad branch: clear the line, clear scratchpad.
   if(state.scratchpad === 'DELETE'){
-    state.lines[idx][lineSlot] = '';
+    state.lines[idx][slot] = '';
     state.scratchpad = '';
     state.scratchpadIsMsg = false;
     state.plusMinusActive = false;
-    render();
-    return;
+    render(); return;
   }
 
   const sp = state.scratchpad;
   const spEmpty   = sp.length === 0;
   const lineEmpty = lineVal.length === 0;
 
-  if(spEmpty && lineEmpty) return;            // nothing to do
+  if(spEmpty && lineEmpty) return;
 
   if(spEmpty && !lineEmpty){
-    // line -> scratchpad
-    state.scratchpad = lineVal;
-    state.scratchpadIsMsg = false;
-    state.lines[idx][lineSlot] = '';
+    state.scratchpad = lineVal; state.scratchpadIsMsg = false;
+    state.lines[idx][slot] = '';
   } else if(!spEmpty && lineEmpty){
-    // scratchpad -> line
-    state.lines[idx][lineSlot] = sp;
-    state.scratchpad = '';
-    state.scratchpadIsMsg = false;
+    state.lines[idx][slot] = sp;
+    state.scratchpad = ''; state.scratchpadIsMsg = false;
   } else {
-    // swap
-    state.lines[idx][lineSlot] = sp;
-    state.scratchpad = lineVal;
-    state.scratchpadIsMsg = false;
+    state.lines[idx][slot] = sp;
+    state.scratchpad = lineVal; state.scratchpadIsMsg = false;
   }
   state.plusMinusActive = false;
   render();
@@ -635,60 +621,63 @@ function resetAll(){
   render();
 }
 
-/* ---------------- Event wiring ---------------- */
-function pressFlash(el){
+/* ============================================================
+   Event wiring — POINTERDOWN for snappy iPad input.
+   Each interactive element gets its own listener so events
+   don't bubble through unrelated children.
+   ============================================================ */
+function flash(el){
   el.classList.add('is-pressed');
-  setTimeout(()=>el.classList.remove('is-pressed'),70);
+  setTimeout(()=>el.classList.remove('is-pressed'),60);
 }
 
-document.getElementById('keypad').addEventListener('click', (e)=>{
-  const btn = e.target.closest('.key');
-  if(!btn) return;
-  pressFlash(btn);
-  if(btn.dataset.noop !== undefined) return; // visual-only
+function handleKeyPress(btn){
+  if(btn.dataset.noop !== undefined) return;
   const action = btn.dataset.action;
   const ch = btn.dataset.char;
-
   if(action === 'plusminus')  return pressPlusMinus();
   if(action === 'space')      return pressSpace();
   if(action === 'delete')     return pressDelete();
-  if(action === 'clear')      return; // CLR handled by touch/mouse handlers below
+  if(action === 'clear')      return; // CLR has its own pointer handler
   if(typeof ch === 'string')  return appendChar(ch);
+}
+
+/* Wire each .key with pointerdown */
+document.querySelectorAll('.key').forEach(btn=>{
+  btn.addEventListener('pointerdown', (e)=>{
+    e.preventDefault();
+    flash(btn);
+    if(btn.id === 'clrKey') return; // CLR handled separately
+    handleKeyPress(btn);
+  });
+  // Prevent the click from also firing (we already handled pointerdown)
+  btn.addEventListener('click', e=> e.preventDefault());
 });
 
-/* CLR — long press (≥1s) clears all; short press handled on release. */
+/* CLR — long-press support via pointerdown/up timer */
 (function wireCLR(){
   const clr = document.getElementById('clrKey');
-  let pressTs = 0, longFired = false, holdTimer = null;
-
-  const start = (e)=>{
-    e.preventDefault?.();
-    pressTs = Date.now();
+  let longFired = false, holdTimer = null;
+  clr.addEventListener('pointerdown', (e)=>{
+    e.preventDefault();
     longFired = false;
-    pressFlash(clr);
-    holdTimer = setTimeout(()=>{
-      longFired = true;
-      clrLongPress();
-    }, CLR_HOLD_MS);
+    holdTimer = setTimeout(()=>{ longFired = true; clrLongPress(); }, CLR_HOLD_MS);
+  });
+  const finish = (e)=>{
+    if(holdTimer){ clearTimeout(holdTimer); holdTimer = null; }
+    if(!longFired) clrShortPress();
   };
-  const end = (e)=>{
-    e.preventDefault?.();
-    clearTimeout(holdTimer);
-    if(!longFired){ clrShortPress(); }
-  };
-  const cancel = ()=>{ clearTimeout(holdTimer); longFired = true; };
-
-  // Use pointer events so we cover mouse + touch on iPad Safari.
-  clr.addEventListener('pointerdown', start);
-  clr.addEventListener('pointerup',   end);
+  const cancel = ()=>{ if(holdTimer){ clearTimeout(holdTimer); holdTimer = null; } longFired = true; };
+  clr.addEventListener('pointerup',   finish);
   clr.addEventListener('pointercancel', cancel);
   clr.addEventListener('pointerleave', cancel);
 })();
 
-/* LSK clicks */
+/* LSK clicks via pointerdown */
 document.querySelectorAll('.lsk').forEach(el=>{
-  el.addEventListener('click', ()=>{
-    pressFlash(el);
+  el.addEventListener('pointerdown', (e)=>{
+    e.preventDefault();
+    flash(el);
     pressLSK(el.dataset.lsk);
   });
 });
@@ -696,15 +685,13 @@ document.querySelectorAll('.lsk').forEach(el=>{
 /* Reset */
 document.getElementById('resetBtn').addEventListener('click', resetAll);
 
-/* Prevent iOS double-tap zoom on the bezel */
-document.getElementById('bezel').addEventListener('touchend', e=>{
-  if(e.target.closest('.key,.lsk')){ e.preventDefault(); }
-}, {passive:false});
-
 /* Prevent iOS pinch zoom */
 document.addEventListener('gesturestart', e=>e.preventDefault());
 
-/* ---------------- Service worker registration ---------------- */
+/* Prevent context menu on long press anywhere in bezel */
+document.getElementById('bezel').addEventListener('contextmenu', e=>e.preventDefault());
+
+/* Service worker (offline) */
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
     navigator.serviceWorker.register('service-worker.js').catch(()=>{});
@@ -714,17 +701,7 @@ if('serviceWorker' in navigator){
 /* ---------------- Boot ---------------- */
 render();
 
-/* ============================================================
-   FUTURE EXTENSION HOOKS (intentionally left as stubs):
-
-     window.CDU = {
-       // dictation mode would call setTargetString(s) and listen
-       // for 'cdu:input' CustomEvents on screen changes
-       getState: () => structuredClone(state),
-       setScratchpad: (s)=>{ state.scratchpad=s; render(); },
-       reset: resetAll,
-     };
-   ============================================================ */
+/* Future hooks (dictation mode, error stats) */
 window.CDU = {
   getState: ()=> JSON.parse(JSON.stringify(state)),
   setScratchpad: (s)=>{ state.scratchpad=String(s||''); state.scratchpadIsMsg=false; render(); },
