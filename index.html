@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="CDU">
+<meta name="theme-color" content="#1a1a1a">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=B612+Mono:wght@400;700&display=swap" rel="stylesheet">
+<title>CDU Trainer</title>
+<style>
+/* ============================================================
+   CDU TRAINER — B737NG Scratchpad Typing PWA
+   Color tokens follow FCOM CDU Page Color definitions:
+     • black bg, white default, magenta active wpt/spd/alt,
+       cyan inactive RTE titles, green active state, shaded white mods
+   ============================================================ */
+:root{
+  --bezel:#5a5a5a;
+  --bezel-dark:#3d3d3d;
+  --bezel-edge:#2a2a2a;
+  --key-bg:#1a1a1a;
+  --key-bg-active:#0a0a0a;
+  --key-text:#e8e8e8;
+  --key-border:#0d0d0d;
+  --key-shadow:rgba(0,0,0,.6);
+  --screen-bg:#000;
+  --screen-frame:#111;
+  --screen-bezel:#2a2a2a;
+  --cdu-white:#ffffff;
+  --cdu-cyan:#00d2d2;
+  --cdu-magenta:#ff4dff;
+  --cdu-green:#33ff33;
+  --cdu-shaded:#a8a8a8;
+  --cdu-amber:#ffb000;
+  --annunciator-off:#3a3a3a;
+  --annunciator-msg:#ddd;
+  --lsk-bg:#1c1c1c;
+  --lsk-stripe:#5a5a5a;
+  --bg-page:#1d1d1d;
+  --reset-bg:#2c2c2c;
+  --reset-fg:#bbb;
+}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+html,body{height:100%;margin:0;padding:0;background:var(--bg-page);overflow:hidden;font-family:'B612 Mono',ui-monospace,Menlo,Consolas,monospace;color:#ddd}
+body{
+  display:flex;align-items:center;justify-content:center;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* Landscape lock */
+.rotate-warning{display:none;position:fixed;inset:0;background:#000;color:#eee;align-items:center;justify-content:center;text-align:center;z-index:9999;padding:24px;font-size:16px;letter-spacing:.04em}
+@media (orientation:landscape) and (max-height:820px){
+  .rotate-warning{display:flex}
+  .app{display:none!important}
+}
+
+/* App container */
+.app{
+  position:relative;
+  width:min(100vw,820px);
+  height:100vh;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:flex-start;
+  padding:8px 0 4px;
+}
+
+/* Reset button — outside bezel, top-right of app */
+.reset-btn{
+  position:absolute;top:14px;right:14px;
+  width:46px;height:46px;border-radius:50%;
+  background:var(--reset-bg);color:var(--reset-fg);
+  border:1px solid #444;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;line-height:1;
+  box-shadow:0 2px 4px rgba(0,0,0,.4);
+  z-index:10;cursor:pointer;
+}
+.reset-btn:active{background:#1a1a1a;transform:scale(.95)}
+
+/* ============================================================
+   BEZEL — physical CDU body
+   ============================================================ */
+.bezel{
+  width:min(96vw,640px);
+  background:linear-gradient(180deg,var(--bezel) 0%,#525252 50%,var(--bezel-dark) 100%);
+  border:2px solid var(--bezel-edge);
+  border-radius:14px;
+  padding:18px 16px 16px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    inset 0 -1px 0 rgba(0,0,0,.3),
+    0 8px 18px rgba(0,0,0,.5);
+  display:flex;flex-direction:column;gap:14px;
+  /* keep aspect natural; height auto */
+}
+
+/* Mounting screws */
+.bezel::before,.bezel::after{
+  content:"";position:absolute;width:10px;height:10px;border-radius:50%;
+  background:radial-gradient(circle at 30% 30%,#888,#222);
+  pointer-events:none;
+}
+
+/* ============================================================
+   DISPLAY ROW — LSK left | screen | LSK right (with annunciators)
+   ============================================================ */
+.display-row{
+  display:grid;
+  grid-template-columns:30px 1fr 30px;
+  gap:6px;
+  align-items:stretch;
+}
+
+.lsk-col{
+  display:grid;
+  grid-template-rows:repeat(6,1fr);
+  gap:8px;
+  padding:14px 0;
+}
+.lsk{
+  position:relative;
+  background:var(--lsk-bg);
+  border:1px solid #0a0a0a;
+  border-radius:3px;
+  width:100%;height:100%;
+  min-height:32px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.12),
+    inset 0 -2px 3px rgba(0,0,0,.5);
+  /* Striped texture mimicking CDU LSK rocker */
+  background-image:repeating-linear-gradient(
+    180deg,
+    var(--lsk-stripe) 0 1px,
+    transparent 1px 4px
+  ),linear-gradient(180deg,#222,#0e0e0e);
+}
+.lsk:active{background-color:var(--key-bg-active);transform:translateY(1px)}
+
+/* Screen container — frame around CRT */
+.screen-wrap{
+  background:var(--screen-bezel);
+  border:2px solid #000;
+  border-radius:6px;
+  padding:8px 10px;
+  position:relative;
+  display:flex;align-items:stretch;justify-content:stretch;
+}
+.screen{
+  flex:1;
+  background:var(--screen-bg);
+  border-radius:3px;
+  padding:8px 10px;
+  font-family:'B612 Mono',ui-monospace,Menlo,Consolas,monospace;
+  font-weight:700;
+  color:var(--cdu-white);
+  font-size:clamp(10px,2.4vw,15px);
+  line-height:1.18;
+  letter-spacing:.06em;
+  white-space:pre;
+  overflow:hidden;
+  text-shadow:0 0 2px rgba(255,255,255,.15);
+  /* subtle scanlines */
+  background-image:repeating-linear-gradient(
+    0deg,
+    rgba(255,255,255,0.015) 0 1px,
+    transparent 1px 2px
+  );
+}
+/* Color spans inside screen text */
+.cdu-w{color:var(--cdu-white)}
+.cdu-c{color:var(--cdu-cyan)}
+.cdu-m{color:var(--cdu-magenta)}
+.cdu-g{color:var(--cdu-green)}
+.cdu-sh{color:var(--cdu-shaded);background:rgba(255,255,255,.08)}
+.cdu-a{color:var(--cdu-amber)}
+
+/* Side annunciator labels (vertical text) */
+.annunciator-side{
+  position:absolute;font-size:8px;color:var(--annunciator-off);
+  font-weight:700;letter-spacing:.1em;
+  writing-mode:vertical-rl;text-orientation:upright;
+  pointer-events:none;
+}
+.ann-msg{top:6%;right:-2px;color:var(--annunciator-off)}
+.ann-ofst{top:34%;right:-2px}
+.ann-call{top:6%;left:-2px}
+.ann-fail{top:34%;left:-2px;color:var(--annunciator-off)}
+
+/* ============================================================
+   KEYPAD GRID — 8 columns
+   ============================================================ */
+.keypad{
+  display:grid;
+  grid-template-columns:repeat(8,1fr);
+  gap:6px;
+}
+
+.key{
+  background:var(--key-bg);
+  color:var(--key-text);
+  border:1px solid var(--key-border);
+  border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'B612 Mono',ui-monospace,Menlo,Consolas,monospace;
+  font-weight:700;
+  font-size:clamp(9px,1.9vw,12px);
+  line-height:1;
+  text-align:center;
+  padding:0 2px;
+  min-height:44px;
+  cursor:pointer;
+  position:relative;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    inset 0 -2px 3px rgba(0,0,0,.55),
+    0 1px 1px rgba(0,0,0,.4);
+  transition:background-color .04s linear,transform .04s linear;
+  -webkit-user-select:none;user-select:none;
+  letter-spacing:.04em;
+}
+.key:active,.key.is-pressed{
+  background:var(--key-bg-active);
+  transform:translateY(1px);
+  box-shadow:
+    inset 0 2px 4px rgba(0,0,0,.7),
+    0 0 0 1px rgba(255,255,255,.04);
+}
+.key.fn{font-size:clamp(8px,1.6vw,10.5px)}
+.key.alpha{font-size:clamp(12px,2.4vw,15px)}
+.key.num{
+  font-size:clamp(13px,2.5vw,16px);
+  border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#2a2a2a,#0a0a0a 75%);
+}
+.key.num:active{background:radial-gradient(circle at 35% 30%,#1a1a1a,#000 75%)}
+.key.misc{font-size:clamp(10px,2vw,13px)}
+.key.exec{
+  background:var(--key-bg);
+  position:relative;
+}
+.key.exec::after{
+  content:"";position:absolute;top:-7px;left:50%;transform:translateX(-50%);
+  width:60%;height:3px;border-radius:1px;background:#1a1a1a;border:1px solid #000;
+}
+
+/* Two-line legends like INIT/REF, DEP/ARR, N1/LIMIT, PREV/PAGE */
+.key .legend{display:flex;flex-direction:column;align-items:center;line-height:1;gap:1px}
+
+/* BRT knob */
+.brt-knob{
+  background:radial-gradient(circle at 35% 30%,#2a2a2a,#0a0a0a 75%);
+  border-radius:50%;
+  border:1px solid #000;
+  box-shadow:
+    inset 0 2px 4px rgba(255,255,255,.08),
+    inset 0 -3px 5px rgba(0,0,0,.6);
+  position:relative;
+  min-height:44px;
+}
+.brt-knob::after{
+  content:"BRT";position:absolute;top:-12px;left:50%;transform:translateX(-50%);
+  font-size:9px;color:#bbb;letter-spacing:.1em;
+}
+
+/* EXEC light */
+.exec-light{
+  background:#0a0a0a;border:1px solid #000;border-radius:2px;
+  min-height:8px;margin-bottom:2px;
+}
+
+/* Plain spacer cell (no key) */
+.spacer{visibility:hidden}
+
+/* ============================================================
+   FOOTER label like FCOM "FORWARD ELECTRONIC PANEL (MCDU)"
+   ============================================================ */
+.bezel-label{
+  text-align:center;color:#cfcfcf;
+  font-size:10px;letter-spacing:.18em;
+  margin-top:2px;font-weight:700;
+}
+
+/* Smaller iPad mini portrait */
+@media (max-height:740px){
+  .bezel{padding:10px 10px 10px;gap:8px}
+  .key{min-height:38px}
+  .lsk{min-height:26px}
+  .keypad{gap:4px}
+}
+</style>
+</head>
+<body>
+
+<div class="rotate-warning">Please rotate to portrait orientation.</div>
+
+<div class="app">
+  <button class="reset-btn" id="resetBtn" aria-label="Reset" title="Reset">⟲</button>
+
+  <div class="bezel" id="bezel">
+
+    <!-- ============ DISPLAY ROW ============ -->
+    <div class="display-row">
+
+      <!-- Left LSK column with CALL/FAIL annunciators -->
+      <div class="lsk-col" id="lskLeft">
+        <div class="lsk" data-lsk="L1" aria-label="LSK L1"></div>
+        <div class="lsk" data-lsk="L2" aria-label="LSK L2"></div>
+        <div class="lsk" data-lsk="L3" aria-label="LSK L3"></div>
+        <div class="lsk" data-lsk="L4" aria-label="LSK L4"></div>
+        <div class="lsk" data-lsk="L5" aria-label="LSK L5"></div>
+        <div class="lsk" data-lsk="L6" aria-label="LSK L6"></div>
+      </div>
+
+      <!-- Screen -->
+      <div class="screen-wrap">
+        <span class="annunciator-side ann-call">CALL</span>
+        <span class="annunciator-side ann-fail">FAIL</span>
+        <span class="annunciator-side ann-msg">MSG</span>
+        <span class="annunciator-side ann-ofst">OFST</span>
+        <div class="screen" id="screen" aria-live="polite"></div>
+      </div>
+
+      <!-- Right LSK column with MSG/OFST annunciators -->
+      <div class="lsk-col" id="lskRight">
+        <div class="lsk" data-lsk="R1" aria-label="LSK R1"></div>
+        <div class="lsk" data-lsk="R2" aria-label="LSK R2"></div>
+        <div class="lsk" data-lsk="R3" aria-label="LSK R3"></div>
+        <div class="lsk" data-lsk="R4" aria-label="LSK R4"></div>
+        <div class="lsk" data-lsk="R5" aria-label="LSK R5"></div>
+        <div class="lsk" data-lsk="R6" aria-label="LSK R6"></div>
+      </div>
+
+    </div><!-- /display-row -->
+
+    <!-- ============ KEYPAD ============ -->
+    <div class="keypad" id="keypad">
+
+      <!-- Row 1: INIT REF | RTE | CLB | CRZ | DES | . | BRT(span2) -->
+      <button class="key fn" data-noop><span class="legend"><span>INIT</span><span>REF</span></span></button>
+      <button class="key fn" data-noop>RTE</button>
+      <button class="key fn" data-noop>CLB</button>
+      <button class="key fn" data-noop>CRZ</button>
+      <button class="key fn" data-noop>DES</button>
+      <div class="spacer"></div>
+      <div class="brt-knob" style="grid-column:span 2"></div>
+
+      <!-- Row 2: MENU | LEGS | DEP ARR | HOLD | PROG | . | EXEC(span2) -->
+      <button class="key fn" data-noop>MENU</button>
+      <button class="key fn" data-noop>LEGS</button>
+      <button class="key fn" data-noop><span class="legend"><span>DEP</span><span>ARR</span></span></button>
+      <button class="key fn" data-noop>HOLD</button>
+      <button class="key fn" data-noop>PROG</button>
+      <div class="spacer"></div>
+      <div style="grid-column:span 2;display:flex;flex-direction:column">
+        <div class="exec-light"></div>
+        <button class="key fn exec" data-noop style="flex:1">EXEC</button>
+      </div>
+
+      <!-- Row 3: N1 LIMIT | FIX | spacer | A B C D E -->
+      <button class="key fn" data-noop><span class="legend"><span>N1</span><span>LIMIT</span></span></button>
+      <button class="key fn" data-noop>FIX</button>
+      <div class="spacer"></div>
+      <button class="key alpha" data-char="A">A</button>
+      <button class="key alpha" data-char="B">B</button>
+      <button class="key alpha" data-char="C">C</button>
+      <button class="key alpha" data-char="D">D</button>
+      <button class="key alpha" data-char="E">E</button>
+
+      <!-- Row 4: PREV PAGE | NEXT PAGE | spacer | F G H I J -->
+      <button class="key fn" data-noop><span class="legend"><span>PREV</span><span>PAGE</span></span></button>
+      <button class="key fn" data-noop><span class="legend"><span>NEXT</span><span>PAGE</span></span></button>
+      <div class="spacer"></div>
+      <button class="key alpha" data-char="F">F</button>
+      <button class="key alpha" data-char="G">G</button>
+      <button class="key alpha" data-char="H">H</button>
+      <button class="key alpha" data-char="I">I</button>
+      <button class="key alpha" data-char="J">J</button>
+
+      <!-- Row 5: 1 | 2 | 3 | K L M N O -->
+      <button class="key num" data-char="1">1</button>
+      <button class="key num" data-char="2">2</button>
+      <button class="key num" data-char="3">3</button>
+      <button class="key alpha" data-char="K">K</button>
+      <button class="key alpha" data-char="L">L</button>
+      <button class="key alpha" data-char="M">M</button>
+      <button class="key alpha" data-char="N">N</button>
+      <button class="key alpha" data-char="O">O</button>
+
+      <!-- Row 6: 4 | 5 | 6 | P Q R S T -->
+      <button class="key num" data-char="4">4</button>
+      <button class="key num" data-char="5">5</button>
+      <button class="key num" data-char="6">6</button>
+      <button class="key alpha" data-char="P">P</button>
+      <button class="key alpha" data-char="Q">Q</button>
+      <button class="key alpha" data-char="R">R</button>
+      <button class="key alpha" data-char="S">S</button>
+      <button class="key alpha" data-char="T">T</button>
+
+      <!-- Row 7: 7 | 8 | 9 | U V W X Y -->
+      <button class="key num" data-char="7">7</button>
+      <button class="key num" data-char="8">8</button>
+      <button class="key num" data-char="9">9</button>
+      <button class="key alpha" data-char="U">U</button>
+      <button class="key alpha" data-char="V">V</button>
+      <button class="key alpha" data-char="W">W</button>
+      <button class="key alpha" data-char="X">X</button>
+      <button class="key alpha" data-char="Y">Y</button>
+
+      <!-- Row 8: . | 0 | +/- | Z SP DEL / CLR -->
+      <button class="key num" data-char=".">.</button>
+      <button class="key num" data-char="0">0</button>
+      <button class="key num" data-action="plusminus">+/−</button>
+      <button class="key alpha" data-char="Z">Z</button>
+      <button class="key misc" data-action="space">SP</button>
+      <button class="key misc" data-action="delete">DEL</button>
+      <button class="key alpha" data-char="/">/</button>
+      <button class="key misc" id="clrKey" data-action="clear">CLR</button>
+
+    </div><!-- /keypad -->
+
+    <div class="bezel-label">FORWARD ELECTRONIC PANEL (MCDU)</div>
+  </div><!-- /bezel -->
+</div><!-- /app -->
+
+<script>
+/* ============================================================
+   CDU TRAINER — Application Logic
+   ------------------------------------------------------------
+   State (kept minimal & explicit so future modes — dictation,
+   error stats — can hook in without refactoring core):
+
+     state.scratchpad       string  current scratchpad text
+     state.scratchpadIsMsg  bool    true if scratchpad currently
+                                    holds a system message (so CLR
+                                    short-press clears it instead
+                                    of backspacing user text)
+     state.lines[i]         {left, right}  i = 0..5  (LSK 1..6)
+     state.plusMinusActive  bool    last keypress was +/- so the
+                                    next +/- toggles instead of
+                                    appending
+   ============================================================ */
+
+const SCRATCHPAD_MAX = 23;   // CDU scratchpad max characters (24 cols, leave 1 margin)
+const LINE_WIDTH     = 24;   // characters per display line
+const CLR_HOLD_MS    = 1000; // CLR long-press threshold
+
+/* ---------------- State ---------------- */
+const state = {
+  scratchpad:'',
+  scratchpadIsMsg:false,
+  lines:Array.from({length:6},()=>({left:'',right:''})),
+  plusMinusActive:false,
+};
+
+/* ---------------- Pure helpers ---------------- */
+function pad(s,n){ s=s||''; if(s.length>=n) return s.slice(0,n); return s+' '.repeat(n-s.length); }
+function escHTML(s){ return (s||'').replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+/** Build one display line: left content, right content, padded to LINE_WIDTH. */
+function fmtLine(left,right){
+  const l = (left||'').slice(0,LINE_WIDTH);
+  const r = (right||'').slice(0,LINE_WIDTH);
+  const space = Math.max(1, LINE_WIDTH - l.length - r.length);
+  return l + ' '.repeat(space) + r;
+}
+function centerLine(s){
+  s = (s||'').slice(0,LINE_WIDTH);
+  const pad = Math.floor((LINE_WIDTH - s.length)/2);
+  return ' '.repeat(Math.max(0,pad)) + s;
+}
+
+/* ---------------- Rendering ---------------- */
+const screenEl = document.getElementById('screen');
+
+/**
+ * Render the full CDU display. The display has 14 rows:
+ *   0  page title
+ *   1  blank
+ *   2  L1/R1 line title (blank for now)
+ *   3  L1/R1 data
+ *   4  L2 title
+ *   5  L2 data
+ *   ...
+ *   12 L6 title
+ *   13 L6 data
+ *   14 scratchpad (we keep it on its own line at the bottom)
+ *
+ * We use HTML spans for color. Empty lines render as dashes
+ * per FCOM CDU Page Components #7 ("Dashes — Data input is optional").
+ */
+function render(){
+  const lines = [];
+
+  // Row 0: Page title — white, centered
+  lines.push(`<span class="cdu-w">${escHTML(centerLine('TRAINING EMRE'))}</span>`);
+  // Row 1: blank
+  lines.push('');
+
+  // Six L/R rows. Each pair = (blank title row, data row).
+  // We show an empty title for now; data row uses dashes if both sides empty
+  // (mimics FCOM page components #7).
+  for(let i=0;i<6;i++){
+    lines.push(''); // line title placeholder
+    const L = state.lines[i].left;
+    const R = state.lines[i].right;
+    let leftText  = L === '' ? '------' : L;
+    let rightText = R === '' ? '------' : R;
+    lines.push(`<span class="cdu-w">${escHTML(fmtLine(leftText,rightText))}</span>`);
+  }
+
+  // Row 14: scratchpad
+  // Left-justified, white. Empty = blank line.
+  const sp = state.scratchpad;
+  lines.push(`<span class="cdu-w">${escHTML(sp)}</span>`);
+
+  screenEl.innerHTML = lines.join('\n');
+}
+
+/* ---------------- Scratchpad mutators ---------------- */
+function appendChar(c){
+  // If scratchpad currently holds a system message, typing replaces it.
+  if(state.scratchpadIsMsg){ state.scratchpad=''; state.scratchpadIsMsg=false; }
+  if(state.scratchpad.length >= SCRATCHPAD_MAX) return;
+  state.scratchpad += c;
+  state.plusMinusActive = false;
+  render();
+}
+
+function pressPlusMinus(){
+  if(state.scratchpadIsMsg){ state.scratchpad=''; state.scratchpadIsMsg=false; }
+  // First push: append "-".
+  // Subsequent pushes (i.e., last char is the +/- we just placed): toggle it.
+  if(state.plusMinusActive && state.scratchpad.length>0){
+    const last = state.scratchpad.slice(-1);
+    if(last === '-' || last === '+'){
+      state.scratchpad = state.scratchpad.slice(0,-1) + (last === '-' ? '+' : '-');
+      render();
+      return;
+    }
+  }
+  if(state.scratchpad.length >= SCRATCHPAD_MAX) return;
+  state.scratchpad += '-';
+  state.plusMinusActive = true;
+  render();
+}
+
+function pressSpace(){ appendChar(' '); }
+
+function pressDelete(){
+  // DEL puts literal DELETE in the scratchpad.
+  if(state.scratchpad === 'DELETE'){ return; }
+  state.scratchpad = 'DELETE';
+  state.scratchpadIsMsg = false; // DELETE is data, not a system msg
+  state.plusMinusActive = false;
+  render();
+}
+
+/* CLR — short press: clear msg (if any) else backspace one char.
+        long press (≥1s): clear entire scratchpad. */
+function clrShortPress(){
+  if(state.scratchpadIsMsg){
+    state.scratchpad=''; state.scratchpadIsMsg=false;
+  } else if(state.scratchpad.length>0){
+    state.scratchpad = state.scratchpad.slice(0,-1);
+  }
+  state.plusMinusActive = false;
+  render();
+}
+function clrLongPress(){
+  state.scratchpad=''; state.scratchpadIsMsg=false; state.plusMinusActive=false;
+  render();
+}
+
+/* ---------------- LSK logic ---------------- */
+// id is "L1".."L6" or "R1".."R6"
+function pressLSK(id){
+  const side = id[0]; // L or R
+  const idx  = parseInt(id.slice(1),10) - 1; // 0..5
+  if(idx<0||idx>5) return;
+  const lineSlot = side === 'L' ? 'left' : 'right';
+  const lineVal  = state.lines[idx][lineSlot];
+
+  // DELETE-in-scratchpad branch: clear the line, clear scratchpad.
+  if(state.scratchpad === 'DELETE'){
+    state.lines[idx][lineSlot] = '';
+    state.scratchpad = '';
+    state.scratchpadIsMsg = false;
+    state.plusMinusActive = false;
+    render();
+    return;
+  }
+
+  const sp = state.scratchpad;
+  const spEmpty   = sp.length === 0;
+  const lineEmpty = lineVal.length === 0;
+
+  if(spEmpty && lineEmpty) return;            // nothing to do
+
+  if(spEmpty && !lineEmpty){
+    // line -> scratchpad
+    state.scratchpad = lineVal;
+    state.scratchpadIsMsg = false;
+    state.lines[idx][lineSlot] = '';
+  } else if(!spEmpty && lineEmpty){
+    // scratchpad -> line
+    state.lines[idx][lineSlot] = sp;
+    state.scratchpad = '';
+    state.scratchpadIsMsg = false;
+  } else {
+    // swap
+    state.lines[idx][lineSlot] = sp;
+    state.scratchpad = lineVal;
+    state.scratchpadIsMsg = false;
+  }
+  state.plusMinusActive = false;
+  render();
+}
+
+/* ---------------- Reset ---------------- */
+function resetAll(){
+  state.scratchpad='';
+  state.scratchpadIsMsg=false;
+  state.plusMinusActive=false;
+  state.lines = Array.from({length:6},()=>({left:'',right:''}));
+  render();
+}
+
+/* ---------------- Event wiring ---------------- */
+function pressFlash(el){
+  el.classList.add('is-pressed');
+  setTimeout(()=>el.classList.remove('is-pressed'),70);
+}
+
+document.getElementById('keypad').addEventListener('click', (e)=>{
+  const btn = e.target.closest('.key');
+  if(!btn) return;
+  pressFlash(btn);
+  if(btn.dataset.noop !== undefined) return; // visual-only
+  const action = btn.dataset.action;
+  const ch = btn.dataset.char;
+
+  if(action === 'plusminus')  return pressPlusMinus();
+  if(action === 'space')      return pressSpace();
+  if(action === 'delete')     return pressDelete();
+  if(action === 'clear')      return; // CLR handled by touch/mouse handlers below
+  if(typeof ch === 'string')  return appendChar(ch);
+});
+
+/* CLR — long press (≥1s) clears all; short press handled on release. */
+(function wireCLR(){
+  const clr = document.getElementById('clrKey');
+  let pressTs = 0, longFired = false, holdTimer = null;
+
+  const start = (e)=>{
+    e.preventDefault?.();
+    pressTs = Date.now();
+    longFired = false;
+    pressFlash(clr);
+    holdTimer = setTimeout(()=>{
+      longFired = true;
+      clrLongPress();
+    }, CLR_HOLD_MS);
+  };
+  const end = (e)=>{
+    e.preventDefault?.();
+    clearTimeout(holdTimer);
+    if(!longFired){ clrShortPress(); }
+  };
+  const cancel = ()=>{ clearTimeout(holdTimer); longFired = true; };
+
+  // Use pointer events so we cover mouse + touch on iPad Safari.
+  clr.addEventListener('pointerdown', start);
+  clr.addEventListener('pointerup',   end);
+  clr.addEventListener('pointercancel', cancel);
+  clr.addEventListener('pointerleave', cancel);
+})();
+
+/* LSK clicks */
+document.querySelectorAll('.lsk').forEach(el=>{
+  el.addEventListener('click', ()=>{
+    pressFlash(el);
+    pressLSK(el.dataset.lsk);
+  });
+});
+
+/* Reset */
+document.getElementById('resetBtn').addEventListener('click', resetAll);
+
+/* Prevent iOS double-tap zoom on the bezel */
+document.getElementById('bezel').addEventListener('touchend', e=>{
+  if(e.target.closest('.key,.lsk')){ e.preventDefault(); }
+}, {passive:false});
+
+/* Prevent iOS pinch zoom */
+document.addEventListener('gesturestart', e=>e.preventDefault());
+
+/* ---------------- Service worker registration ---------------- */
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+  });
+}
+
+/* ---------------- Boot ---------------- */
+render();
+
+/* ============================================================
+   FUTURE EXTENSION HOOKS (intentionally left as stubs):
+
+     window.CDU = {
+       // dictation mode would call setTargetString(s) and listen
+       // for 'cdu:input' CustomEvents on screen changes
+       getState: () => structuredClone(state),
+       setScratchpad: (s)=>{ state.scratchpad=s; render(); },
+       reset: resetAll,
+     };
+   ============================================================ */
+window.CDU = {
+  getState: ()=> JSON.parse(JSON.stringify(state)),
+  setScratchpad: (s)=>{ state.scratchpad=String(s||''); state.scratchpadIsMsg=false; render(); },
+  reset: resetAll,
+};
+</script>
+</body>
+</html>
