@@ -18,18 +18,13 @@
 <style>
 /* ============================================================
    CDU TRAINER — Photo-backed B737NG CDU
-   - cdu_photo.PNG is the real bezel/keys (screen area is transparent)
-   - Our interactive screen sits UNDER the photo, showing through
-   - Invisible buttons sit ON TOP, aligned to photo key positions
-   - Press = subtle dark overlay over the key
+   Authentic FCOM preflight flow:
+   IDENT → POS INIT → RTE → PERF INIT → N1 LIMIT → TAKEOFF REF 1/2 → 2/2
    ============================================================ */
 :root{
   --screen-bg:#000;
   --cdu-white:#ffffff;
-  --cdu-cyan:#00d2d2;
-  --cdu-magenta:#ff4dff;
-  --cdu-green:#33ff33;
-  --cdu-shaded:#a8a8a8;
+  --cdu-cyan:#29e3ff;
   --press-shade: rgba(0,0,0,0.32);
   --bg-page:#0a0a0a;
 }
@@ -45,16 +40,12 @@ body{
            max(env(safe-area-inset-left), 6px);
 }
 
-/* Landscape lock */
 .rotate-warning{display:none;position:fixed;inset:0;background:#000;color:#eee;align-items:center;justify-content:center;text-align:center;z-index:9999;padding:24px;font-size:16px;letter-spacing:.04em}
 @media (orientation:landscape){
   .rotate-warning{display:flex}
   .app{display:none!important}
 }
 
-/* ============================================================
-   CDU stage — size-to-fit, preserves 2088×3160 aspect
-   ============================================================ */
 .stage{
   position:relative;
   aspect-ratio: 2088 / 3160;
@@ -62,16 +53,10 @@ body{
   max-height: 100vh;
   max-width: 100vw;
   margin: auto;
-  /* cap so the stage doesn't grow taller than viewport while being a bit narrower */
 }
-@media (min-aspect-ratio: 2088/3160){
-  .stage{ width:auto; height:100vh; }
-}
-@media (max-aspect-ratio: 2088/3160){
-  .stage{ width:100vw; height:auto; }
-}
+@media (min-aspect-ratio: 2088/3160){ .stage{ width:auto; height:100vh; } }
+@media (max-aspect-ratio: 2088/3160){ .stage{ width:100vw; height:auto; } }
 
-/* Reset button — outside the CDU, top-right corner of viewport */
 .reset-btn{
   position:fixed;top:calc(env(safe-area-inset-top) + 8px);right:10px;
   width:40px;height:40px;border-radius:50%;
@@ -84,10 +69,7 @@ body{
 .reset-btn:active{background:#111;transform:scale(.94)}
 
 /* ============================================================
-   Interactive CDU screen (under the photo, visible through cutout)
-   Percentages come straight from the transparent region detection:
-     x: 303-1780/2088  →  14.51% to 85.25%   (w = 70.74%)
-     y: 211-1323/3160  →   6.68% to 41.87%   (h = 35.19%)
+   CDU screen — shows through photo cutout
    ============================================================ */
 .cdu-screen{
   position:absolute;
@@ -100,230 +82,232 @@ body{
   overflow: hidden;
 
   display:grid;
-  grid-template-rows: 1fr repeat(6, 2fr) 1.2fr;
-  padding: 2.2% 2.4%;
-  gap: 0.3%;
+  grid-template-rows: 1fr repeat(6, 2.1fr) 1.1fr;
+  padding: 2.0% 2.0%;
+  gap: 0.2%;
   font-family: 'B612 Mono',ui-monospace,Menlo,Consolas,monospace;
   font-weight:700;
   color:var(--cdu-white);
-  letter-spacing:.06em;
-  line-height:1.1;
+  letter-spacing:.04em;
+  line-height:1.0;
   text-shadow:0 0 2px rgba(255,255,255,.18);
-  font-size: clamp(10px, 2.0vw, 22px);   /* scales with viewport */
+  font-size: clamp(10px, 2.0vw, 22px);
+
+  /* Slashed zero — real CDU typography, distinguishes 0 from O */
+  font-variant-numeric: slashed-zero;
+  font-feature-settings: "zero" 1, "ss01" 1;
 
   background-image: repeating-linear-gradient(
-    0deg,
-    rgba(255,255,255,0.015) 0 1px,
-    transparent 1px 2px
+    0deg, rgba(255,255,255,0.015) 0 1px, transparent 1px 2px
   );
 }
 .cdu-screen > *{min-height:0;overflow:hidden}
-.screen-title{text-align:center;align-self:center;color:var(--cdu-white);white-space:pre}
-.screen-line{display:flex;justify-content:space-between;align-items:center;padding:0 4px;white-space:pre;min-width:0}
-.screen-line .left,.screen-line .right{color:var(--cdu-white);white-space:pre}
+
+.screen-title{
+  text-align:center;align-self:center;
+  color:var(--cdu-white);
+  white-space:pre;
+  letter-spacing:.08em;
+}
+
+/* Each line = grid with two columns + absolute-positioned centered layer */
+.screen-line{
+  position:relative;
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  padding:0 2px;
+  min-width:0;
+  align-items:stretch;
+}
+.screen-line .col{
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;   /* label on top, value on bottom (aligns with LSK) */
+  min-width:0;
+  line-height:1;
+  gap: 2px;
+}
+.screen-line .col.left{  align-items:flex-start; text-align:left; }
+.screen-line .col.right{ align-items:flex-end;   text-align:right; }
+.screen-line .col.center{
+  position:absolute;
+  left:0; right:0; bottom:0;
+  align-items:center;
+  text-align:center;
+  pointer-events:none;
+  display:none;
+}
+.screen-line.has-center .col.center{ display:flex; }
+
+.screen-line .label{
+  font-size:.58em;
+  color:var(--cdu-cyan);
+  letter-spacing:.05em;
+  line-height:1;
+  white-space:pre;
+  font-weight:700;
+}
+.screen-line .value{
+  font-size:1em;
+  color:var(--cdu-white);
+  line-height:1;
+  white-space:pre;
+  font-weight:700;
+}
+.screen-line .value.small{ font-size:.72em; }
+.screen-line .value.hi{
+  background: var(--cdu-white);
+  color:#000;
+  padding: 0 .2em;
+}
+
 .screen-scratchpad{
   align-self:end;
   padding:0 4px;
   color:var(--cdu-white);
   white-space:pre;
-  border-top:1px solid rgba(255,255,255,.04);
+  border-top:1px solid rgba(255,255,255,.06);
   height:100%;
   display:flex;align-items:center;
+  font-weight:700;
+  letter-spacing:.05em;
 }
-/* CDU page color helpers (future-proof) */
-.cdu-w{color:var(--cdu-white)}  .cdu-c{color:var(--cdu-cyan)}
-.cdu-m{color:var(--cdu-magenta)} .cdu-g{color:var(--cdu-green)}
-.cdu-sh{color:var(--cdu-shaded);background:rgba(255,255,255,.08)}
+.screen-scratchpad.msg{ color:var(--cdu-white); }
 
 /* ============================================================
-   Photo layer — on top of the screen, below the buttons
+   Photo + touch overlay
    ============================================================ */
-.cdu-photo{
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  pointer-events:none;
-  z-index:2;
-  -webkit-user-drag:none;
-  user-drag:none;
-}
-
-/* ============================================================
-   Touch overlay — invisible buttons positioned over the photo
-   ============================================================ */
-.btn{
-  position:absolute;
-  background:transparent;
-  border:0;
-  padding:0;
-  margin:0;
-  cursor:pointer;
-  z-index:3;
-  border-radius:6%/4%;           /* matches typical key rounding */
-  color:transparent;              /* hide inline text; photo shows label */
-  font:inherit;
-}
-.btn.num-btn,.btn.lsk-btn{border-radius:50%;}
-.btn.lsk-btn{border-radius:14%/22%;}
-.btn::after{
-  content:"";
-  position:absolute;
-  inset:0;
-  background:transparent;
-  border-radius:inherit;
-  pointer-events:none;
-  transition: background .06s linear;
-}
-.btn:active::after,
-.btn.is-pressed::after{
-  background: var(--press-shade);
-}
+.cdu-photo{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;-webkit-user-drag:none;user-drag:none}
+.btn{position:absolute;background:transparent;border:0;padding:0;margin:0;cursor:pointer;z-index:3;border-radius:6%/4%;color:transparent;font:inherit}
+.btn.num-btn{border-radius:50%}
+.btn.lsk-btn{border-radius:14%/22%}
+.btn::after{content:"";position:absolute;inset:0;background:transparent;border-radius:inherit;pointer-events:none;transition:background .06s linear}
+.btn:active::after,.btn.is-pressed::after{background:var(--press-shade)}
 </style>
 </head>
 <body>
 
 <div class="rotate-warning">Please rotate to portrait orientation.</div>
-
 <button class="reset-btn" id="resetBtn" aria-label="Reset">⟲</button>
 
 <div class="stage" id="stage">
 
-  <!-- ============ INTERACTIVE SCREEN (shows through photo cutout) ============ -->
+  <!-- ============ SCREEN ============ -->
   <div class="cdu-screen" id="screen">
-    <div class="screen-title">TRAINING EMRE</div>
-    <div class="screen-line"><span class="left"  id="line-0-L">------</span><span class="right" id="line-0-R">------</span></div>
-    <div class="screen-line"><span class="left"  id="line-1-L">------</span><span class="right" id="line-1-R">------</span></div>
-    <div class="screen-line"><span class="left"  id="line-2-L">------</span><span class="right" id="line-2-R">------</span></div>
-    <div class="screen-line"><span class="left"  id="line-3-L">------</span><span class="right" id="line-3-R">------</span></div>
-    <div class="screen-line"><span class="left"  id="line-4-L">------</span><span class="right" id="line-4-R">------</span></div>
-    <div class="screen-line"><span class="left"  id="line-5-L">------</span><span class="right" id="line-5-R">------</span></div>
+    <div class="screen-title" id="screenTitle"></div>
+
+    <div class="screen-line" data-row="0">
+      <div class="col left"><span class="label" id="line-0-LL"></span><span class="value" id="line-0-LV"></span></div>
+      <div class="col right"><span class="label" id="line-0-RL"></span><span class="value" id="line-0-RV"></span></div>
+      <div class="col center"><span class="label" id="line-0-CL"></span><span class="value" id="line-0-CV"></span></div>
+    </div>
+    <div class="screen-line" data-row="1">
+      <div class="col left"><span class="label" id="line-1-LL"></span><span class="value" id="line-1-LV"></span></div>
+      <div class="col right"><span class="label" id="line-1-RL"></span><span class="value" id="line-1-RV"></span></div>
+      <div class="col center"><span class="label" id="line-1-CL"></span><span class="value" id="line-1-CV"></span></div>
+    </div>
+    <div class="screen-line" data-row="2">
+      <div class="col left"><span class="label" id="line-2-LL"></span><span class="value" id="line-2-LV"></span></div>
+      <div class="col right"><span class="label" id="line-2-RL"></span><span class="value" id="line-2-RV"></span></div>
+      <div class="col center"><span class="label" id="line-2-CL"></span><span class="value" id="line-2-CV"></span></div>
+    </div>
+    <div class="screen-line" data-row="3">
+      <div class="col left"><span class="label" id="line-3-LL"></span><span class="value" id="line-3-LV"></span></div>
+      <div class="col right"><span class="label" id="line-3-RL"></span><span class="value" id="line-3-RV"></span></div>
+      <div class="col center"><span class="label" id="line-3-CL"></span><span class="value" id="line-3-CV"></span></div>
+    </div>
+    <div class="screen-line" data-row="4">
+      <div class="col left"><span class="label" id="line-4-LL"></span><span class="value" id="line-4-LV"></span></div>
+      <div class="col right"><span class="label" id="line-4-RL"></span><span class="value" id="line-4-RV"></span></div>
+      <div class="col center"><span class="label" id="line-4-CL"></span><span class="value" id="line-4-CV"></span></div>
+    </div>
+    <div class="screen-line" data-row="5">
+      <div class="col left"><span class="label" id="line-5-LL"></span><span class="value" id="line-5-LV"></span></div>
+      <div class="col right"><span class="label" id="line-5-RL"></span><span class="value" id="line-5-RV"></span></div>
+      <div class="col center"><span class="label" id="line-5-CL"></span><span class="value" id="line-5-CV"></span></div>
+    </div>
+
     <div class="screen-scratchpad" id="scratchpad"></div>
   </div>
 
-  <!-- ============ PHOTO (bezel + all printed key caps) ============ -->
+  <!-- ============ PHOTO ============ -->
   <img class="cdu-photo" src="cdu_photo.PNG" alt="B737NG CDU" draggable="false">
 
-  <!-- ============ TOUCH OVERLAY (invisible buttons at photo coords) ============ -->
+  <!-- ============ TOUCH OVERLAY ============ -->
   <div class="overlay" id="overlay"></div>
 
 </div>
 
 <script>
 /* ============================================================
-   Button coordinates — measured from cdu_photo.PNG (2088×3160)
-   Each row: [id, x0, y0, x1, y1, kind]
-   kind: char|action|noop|lsk; with 'char' the payload is the char itself
+   BUTTON COORDS — measured from cdu_photo.PNG (2088×3160)
    ============================================================ */
 const IMG_W = 2088, IMG_H = 3160;
-
 const BUTTONS = [
-  /* ---- LSK LEFT ---- */
-  ['L1','lsk',  67,  356,  200,  450],
-  ['L2','lsk',  68,  506,  199,  600],
-  ['L3','lsk',  67,  655,  199,  749],
-  ['L4','lsk',  66,  804,  198,  899],
-  ['L5','lsk',  66,  954,  198, 1049],
-  ['L6','lsk',  65, 1104,  197, 1198],
-  /* ---- LSK RIGHT ---- */
-  ['R1','lsk',1885,  358, 2017,  453],
-  ['R2','lsk',1885,  508, 2017,  602],
-  ['R3','lsk',1885,  657, 2018,  752],
-  ['R4','lsk',1885,  806, 2018,  901],
-  ['R5','lsk',1885,  956, 2018, 1051],
-  ['R6','lsk',1886, 1106, 2018, 1202],
+  ['L1','lsk',  67,  356,  200,  450], ['L2','lsk',  68,  506,  199,  600],
+  ['L3','lsk',  67,  655,  199,  749], ['L4','lsk',  66,  804,  198,  899],
+  ['L5','lsk',  66,  954,  198, 1049], ['L6','lsk',  65, 1104,  197, 1198],
+  ['R1','lsk',1885,  358, 2017,  453], ['R2','lsk',1885,  508, 2017,  602],
+  ['R3','lsk',1885,  657, 2018,  752], ['R4','lsk',1885,  806, 2018,  901],
+  ['R5','lsk',1885,  956, 2018, 1051], ['R6','lsk',1886, 1106, 2018, 1202],
 
-  /* ---- Function row 1: INIT REF, RTE, CLB, CRZ, DES, BRT ---- */
-  ['INIT_REF','noop', 239,1453, 461,1600],
-  ['RTE'     ,'noop', 497,1454, 720,1600],
-  ['CLB'     ,'noop', 756,1454, 979,1601],
-  ['CRZ'     ,'noop',1015,1454,1238,1601],
-  ['DES'     ,'noop',1274,1454,1497,1601],
+  ['INIT_REF','fn', 239,1453, 461,1600],
+  ['RTE'     ,'fn', 497,1454, 720,1600],
+  ['CLB'     ,'fn', 756,1454, 979,1601],
+  ['CRZ'     ,'fn',1015,1454,1238,1601],
+  ['DES'     ,'fn',1274,1454,1497,1601],
   ['BRT'     ,'noop',1705,1412,1884,1590],
 
-  /* ---- Function row 2: MENU, LEGS, DEP ARR, HOLD, PROG, EXEC ---- */
-  ['MENU'    ,'noop', 238,1632, 461,1780],
-  ['LEGS'    ,'noop', 496,1633, 719,1780],
-  ['DEP_ARR' ,'noop', 755,1633, 978,1781],
-  ['HOLD'    ,'noop',1015,1633,1238,1781],
-  ['PROG'    ,'noop',1274,1633,1497,1781],
-  ['EXEC'    ,'noop',1562,1634,1784,1781],
+  ['MENU'    ,'fn', 238,1632, 461,1780],
+  ['LEGS'    ,'fn', 496,1633, 719,1780],
+  ['DEP_ARR' ,'fn', 755,1633, 978,1781],
+  ['HOLD'    ,'fn',1015,1633,1238,1781],
+  ['PROG'    ,'fn',1274,1633,1497,1781],
+  ['EXEC'    ,'fn',1562,1634,1784,1781],
 
-  /* ---- Row 3: N1 LIMIT, FIX  |  A B C D E ---- */
-  ['N1_LIMIT','noop', 237,1812, 460,1959],
-  ['FIX'     ,'noop', 495,1813, 719,1960],
-  ['A','char', 879,1871,1028,2018],
-  ['B','char',1080,1871,1229,2018],
-  ['C','char',1282,1872,1430,2019],
-  ['D','char',1482,1872,1631,2019],
+  ['N1_LIMIT','fn', 237,1812, 460,1959],
+  ['FIX'     ,'fn', 495,1813, 719,1960],
+  ['A','char', 879,1871,1028,2018],['B','char',1080,1871,1229,2018],
+  ['C','char',1282,1872,1430,2019],['D','char',1482,1872,1631,2019],
   ['E','char',1684,1872,1833,2019],
 
-  /* ---- Row 4: PREV PAGE, NEXT PAGE  |  F G H I J ---- */
-  ['PREV_PAGE','noop',236,1992,459,2140],
-  ['NEXT_PAGE','noop',495,1993,718,2140],
-  ['F','char', 879,2072,1027,2219],
-  ['G','char',1080,2073,1229,2220],
-  ['H','char',1281,2073,1430,2220],
-  ['I','char',1483,2073,1631,2220],
+  ['PREV_PAGE','fn',236,1992,459,2140],['NEXT_PAGE','fn',495,1993,718,2140],
+  ['F','char', 879,2072,1027,2219],['G','char',1080,2073,1229,2220],
+  ['H','char',1281,2073,1430,2220],['I','char',1483,2073,1631,2220],
   ['J','char',1684,2074,1833,2221],
 
-  /* ---- Row 5: BLANK, BLANK  |  K L M N O ---- */
-  ['BLANK_1','noop',235,2172, 458,2320],
-  ['BLANK_2','noop',494,2172, 717,2320],
-  ['K','char', 878,2274,1027,2422],
-  ['L','char',1079,2274,1229,2422],
-  ['M','char',1281,2275,1431,2422],
-  ['N','char',1483,2275,1631,2422],
+  ['BLANK_1','noop',235,2172, 458,2320],['BLANK_2','noop',494,2172, 717,2320],
+  ['K','char', 878,2274,1027,2422],['L','char',1079,2274,1229,2422],
+  ['M','char',1281,2275,1431,2422],['N','char',1483,2275,1631,2422],
   ['O','char',1684,2275,1833,2423],
 
-  /* ---- Row 6: 1 2 3 ---- */
-  ['1','char', 253,2368, 386,2498],
-  ['2','char', 446,2368, 580,2499],
-  ['3','char', 640,2369, 774,2499],
+  ['1','char', 253,2368, 386,2498],['2','char', 446,2368, 580,2499],['3','char', 640,2369, 774,2499],
 
-  /* ---- Row 7: 4 5 6  |  P Q R S T ---- */
-  ['4','char', 252,2541, 386,2672],
-  ['5','char', 446,2541, 579,2672],
-  ['6','char', 640,2542, 774,2672],
-  ['P','char', 877,2476,1027,2623],
-  ['Q','char',1079,2476,1229,2624],
-  ['R','char',1281,2476,1431,2624],
-  ['S','char',1483,2477,1632,2624],
+  ['4','char', 252,2541, 386,2672],['5','char', 446,2541, 579,2672],['6','char', 640,2542, 774,2672],
+  ['P','char', 877,2476,1027,2623],['Q','char',1079,2476,1229,2624],
+  ['R','char',1281,2476,1431,2624],['S','char',1483,2477,1632,2624],
   ['T','char',1684,2477,1834,2625],
 
-  /* ---- Row 8: 7 8 9  |  U V W X Y ---- */
-  ['7','char', 250,2714, 386,2845],
-  ['8','char', 445,2715, 579,2846],
-  ['9','char', 639,2715, 773,2846],
-  ['U','char', 877,2678,1026,2827],
-  ['V','char',1079,2678,1229,2827],
-  ['W','char',1281,2679,1430,2827],
-  ['X','char',1482,2679,1633,2827],
-  ['Y','char',1684,2679,1834,2827],
+  ['7','char', 250,2714, 386,2845],['8','char', 445,2715, 579,2846],['9','char', 639,2715, 773,2846],
+  ['U','char', 877,2678,1026,2827],['V','char',1079,2678,1229,2827],
+  ['W','char',1281,2679,1430,2827],['X','char',1482,2679,1633,2827],['Y','char',1684,2679,1834,2827],
 
-  /* ---- Row 9: . 0 +/-  |  Z SP DEL / CLR ---- */
-  ['.'    ,'char'  , 250,2887, 384,3020],
-  ['0'    ,'char'  , 444,2888, 578,3020],
-  ['PM'   ,'action', 638,2888, 773,3020],   /* +/-  */
-  ['Z'    ,'char'  , 876,2880,1026,3030],
-  ['SP'   ,'action',1078,2880,1228,3030],
-  ['DEL'  ,'action',1280,2881,1431,3031],
-  ['/'    ,'char'  ,1482,2881,1633,3031],
-  ['CLR'  ,'clr'   ,1683,2881,1835,3030],
+  ['.'    ,'char'  , 250,2887, 384,3020],['0'    ,'char'  , 444,2888, 578,3020],
+  ['PM'   ,'action', 638,2888, 773,3020],['Z'    ,'char'  , 876,2880,1026,3030],
+  ['SP'   ,'action',1078,2880,1228,3030],['DEL'  ,'action',1280,2881,1431,3031],
+  ['/'    ,'char'  ,1482,2881,1633,3031],['CLR'  ,'clr'   ,1683,2881,1835,3030],
 ];
 
 /* ============================================================
-   Build overlay buttons (absolute-positioned in %)
+   Build overlay buttons
    ============================================================ */
 const overlay = document.getElementById('overlay');
 function pct(v, total){ return (v/total*100) + '%'; }
-
 for(const b of BUTTONS){
   const [id, kind, x0, y0, x1, y1] = b;
   const el = document.createElement('button');
   el.className = 'btn';
   if(kind === 'lsk') el.classList.add('lsk-btn');
-  // numeric circular hit shape
   if(/^\d$/.test(id) || id === '.' || id === 'PM') el.classList.add('num-btn');
   el.style.left   = pct(x0, IMG_W);
   el.style.top    = pct(y0, IMG_H);
@@ -337,7 +321,633 @@ for(const b of BUTTONS){
 }
 
 /* ============================================================
-   CDU state machine — unchanged behavior
+   FMC DATABASE — persistent across pages
+   ============================================================ */
+const fmc = {
+  ident: {
+    model: '737-800',
+    engRating: '26K',
+    navData: 'AIRAC 2604',
+    activeDb: 'APR26APR30/26',
+    inactiveDb: 'MAR29APR25/26',
+    opProgram: 'U14.4',
+    suppData: 'APR 21/26',
+  },
+  posInit: {
+    lastPos: 'N41°15.7 E028°44.8',
+    refAirport: '',
+    gate: '',
+    gmtMonDy: '1432.2z 11/20',
+    setIrsHdg: '',
+    setIrsPos: '',
+  },
+  route: {
+    origin: '', dest: '', coRoute: '', fltNo: '', runway: '',
+    activated: false, modified: false,
+  },
+  perf: {
+    grWt: '',  zfw: '', crzCg: '', reserves: '',
+    costIndex: '', crzAlt: '',
+    crzWindDir: '', crzWindSpd: '',   /* split for dual entry 'DIR/SPD' */
+    tcOatC: '',                        /* user-entered OAT in °C (F is derived) */
+    transAlt: '10000',
+    planFuel: '9.5',            /* hardcoded plan fuel for GW auto-calc */
+  },
+  n1: { selectedTO: 'TO', selectedCLB: 'CLB', selTemp: '', oat: '' },
+  takeoff: {
+    flaps: '', cg: '', v1: '', vr: '', v2: '',
+    intersect: '',
+    rwWind: '', rwCond: 'DRY', rwSlope: '',
+    accelHt: '1000', eoAccelHt: '1000', reduction: '800',
+  },
+  ui: { currentPage: 'IDENT', pageStack: [] },
+};
+
+function getField(path){ const [o,k]=path.split('.'); return fmc[o][k]; }
+function setField(path, val){ const [o,k]=path.split('.'); fmc[o][k] = val; }
+function dash(s, n){ s = s||''; return s.length ? s : '-'.repeat(n); }
+function box(s, n){ s = s||''; return s.length ? s : '\u25A1'.repeat(n); }    /* ▢ boxes */
+
+/* ============================================================
+   PAGE DEFINITIONS — authentic FCOM layouts
+   Each page: title, lines() → [{L,C,R},…] × 6, lsk map
+     L/C/R cell: {label, val, cls, hi}
+     lsk binding: function() OR {field:'path'} OR {field,action}
+   ============================================================ */
+const PAGES = {
+  /* ===== INIT/REF INDEX ===== */
+  INIT_REF_INDEX: {
+    title: () => '       INIT/REF INDEX',
+    lines: () => [
+      { L:{val:'<IDENT'},    R:{val:'NAV DATA>'} },
+      { L:{val:'<POS'} },
+      { L:{val:'<PERF'},     R:{val:'ALTN DEST>'} },
+      { L:{val:'<TAKEOFF'} },
+      { L:{val:'<APPROACH'}, R:{val:'NAV STATUS>'} },
+      { L:{val:'<OFFSET'},   R:{val:'MAINT>'} },
+    ],
+    lsk: {
+      L1:()=>openPage('IDENT'),
+      L2:()=>openPage('POS_INIT'),
+      L3:()=>openPage('PERF_INIT'),
+      L4:()=>openPage('TAKEOFF_REF'),
+    },
+  },
+
+  /* ===== IDENT (1/1) ===== */
+  IDENT: {
+    title: () => '         IDENT      1/1',
+    lines: () => [
+      { L:{label:'MODEL',    val:fmc.ident.model},
+        R:{label:'ENG RATING', val:fmc.ident.engRating} },
+      { L:{label:'NAV DATA', val:fmc.ident.navData},
+        R:{label:'ACTIVE',     val:fmc.ident.activeDb} },
+      { R:{val:fmc.ident.inactiveDb} },
+      { L:{label:'OP PROGRAM', val:fmc.ident.opProgram},
+        R:{label:'SUPP DATA',  val:fmc.ident.suppData} },
+      {},
+      { L:{val:'<INDEX'}, R:{val:'POS INIT>'} },
+    ],
+    lsk: {
+      L6:()=>openPage('INIT_REF_INDEX'),
+      R6:()=>openPage('POS_INIT'),
+    },
+  },
+
+  /* ===== POS INIT 1/3 ===== */
+  POS_INIT: {
+    title: () => '       POS INIT     1/3',
+    lines: () => [
+      { R:{label:'LAST POS', val:fmc.posInit.lastPos} },
+      { L:{label:'REF AIRPORT', val:dash(fmc.posInit.refAirport,4)} },
+      { L:{label:'GATE',        val:dash(fmc.posInit.gate,5)},
+        R:{label:'SET IRS POS',
+           val: fmc.posInit.setIrsPos
+                ? fmc.posInit.setIrsPos
+                : (box('',4)+'°'+box('',4)+'.'+box('',1)+' '+box('',5)+'°'+box('',4)+'.'+box('',1)) } },
+      { L:{label:'GMT-MON/DY', val:fmc.posInit.gmtMonDy},
+        R:{label:'SET IRS HDG', val:dash(fmc.posInit.setIrsHdg,3)+'°'} },
+      {},
+      { L:{val:'<INDEX'}, R:{val:'ROUTE>'} },
+    ],
+    lsk: {
+      L2:{field:'posInit.refAirport'},
+      L3:{field:'posInit.gate'},
+      R3:{field:'posInit.setIrsPos'},
+      L4:{field:'posInit.gmtMonDy'},
+      R4:{field:'posInit.setIrsHdg'},
+      L6:()=>openPage('INIT_REF_INDEX'),
+      R6:()=>openPage('RTE'),
+    },
+  },
+
+  /* ===== POS REF 2/3 =====
+     All rows L1-L5 are COPY-ONLY: pressing the LSK copies the displayed
+     coord into the scratchpad so the pilot can paste it back into POS INIT
+     SET IRS POS on page 1/3. This is how real-world IRS alignment works. */
+  POS_REF: {
+    title: () => '        POS REF     2/3',
+    lines: () => [
+      { L:{label:'FMC POS', val:'N41°15.7 E028°44.8'}, R:{label:'GS', val:'0KT'} },
+      { L:{label:'IRS L',   val:'N41°15.7 E028°44.7'}, R:{val:'0KT'} },
+      { L:{label:'IRS R',   val:'N41°15.8 E028°44.8'}, R:{val:'0KT'} },
+      { L:{label:'GPS L',   val:'N41°15.7 E028°44.8'} },
+      { L:{label:'GPS R',   val:'N41°15.7 E028°44.8'} },
+      { L:{label:'RADIO',   val:'-----'} },
+    ],
+    lsk: {
+      L1: ()=>copyCoordToScratch('N41°15.7 E028°44.8'),
+      L2: ()=>copyCoordToScratch('N41°15.7 E028°44.7'),
+      L3: ()=>copyCoordToScratch('N41°15.8 E028°44.8'),
+      L4: ()=>copyCoordToScratch('N41°15.7 E028°44.8'),
+      L5: ()=>copyCoordToScratch('N41°15.7 E028°44.8'),
+    },
+  },
+
+  /* ===== POS SHIFT 3/3 (stub) ===== */
+  POS_SHIFT: {
+    title: () => '       POS SHIFT    3/3',
+    lines: () => [
+      { L:{label:'POS REF', val:'FMC'} },
+      { L:{label:'BRG/DIST', val:'---°/-.-NM'} },
+      {},
+      {},
+      {},
+      { L:{val:'<INDEX'}, R:{val:'UPDATE>'} },
+    ],
+    lsk: {
+      L6:()=>openPage('POS_INIT'),
+    },
+  },
+
+  /* ===== RTE 1 1/2 ===== */
+  RTE: {
+    /* Auto-paste REF AIRPORT to scratchpad when opening RTE
+       (only if scratchpad empty, origin empty, and refAirport set) */
+    onEnter: () => {
+      if(!state.scratchpad && !fmc.route.origin && fmc.posInit.refAirport){
+        state.scratchpad = fmc.posInit.refAirport;
+        state.scratchpadIsMsg = false;
+      }
+    },
+    title: () => (fmc.route.modified ? '   MOD  ' : (fmc.route.activated ? '   ACT  ' : '        '))
+                  + 'RTE 1       1/2',
+    lines: () => {
+      const rightBottom = fmc.route.activated
+        ? { val:'PERF INIT>' }
+        : { val:'ACTIVATE>', hi: fmc.route.modified };
+      return [
+        { L:{label:'ORIGIN',    val:box(fmc.route.origin,4)},
+          R:{label:'DEST',      val:box(fmc.route.dest,4)} },
+        { L:{label:'CO ROUTE',  val:dash(fmc.route.coRoute,10)},
+          R:{label:'FLT NO.',   val:dash(fmc.route.fltNo,8)} },
+        { L:{label:'RUNWAY',    val:dash(fmc.route.runway,5)},
+          R:{val:'FLT PLAN REQUEST>'} },
+        {},
+        {},
+        { L:{val:'<RTE 2'}, R: rightBottom },
+      ];
+    },
+    lsk: {
+      L1:{field:'route.origin', mod:true},
+      R1:{field:'route.dest',   mod:true},
+      L2:{field:'route.coRoute',mod:true},
+      R2:{field:'route.fltNo',  mod:true},
+      L3:{field:'route.runway', mod:true},
+      L6:()=>openPage('RTE2'),
+      R6:()=>{
+        if(fmc.route.activated){ openPage('PERF_INIT'); return; }
+        if(fmc.route.origin && fmc.route.dest){
+          fmc.route.activated = true;
+          fmc.route.modified  = false;
+          renderCurrentPage();
+        }
+      },
+    },
+  },
+
+  /* ===== RTE 1 2/2  (VIA / TO) ===== */
+  RTE2: {
+    title: () => (fmc.route.modified ? '   MOD  ' : (fmc.route.activated ? '   ACT  ' : '        '))
+                  + 'RTE 1       2/2',
+    lines: () => [
+      { L:{label:'VIA', val:'DIRECT'},           R:{label:'TO',  val:box('',5)} },
+      { L:{val:dash('',5)},                      R:{val:dash('',5)} },
+      { L:{val:dash('',5)},                      R:{val:dash('',5)} },
+      { L:{val:dash('',5)},                      R:{val:dash('',5)} },
+      {},
+      { L:{val:'<RTE 1'}, R:{ val: fmc.route.activated ? 'PERF INIT>' : 'ACTIVATE>',
+                              hi: fmc.route.modified && !fmc.route.activated } },
+    ],
+    lsk: {
+      L6:()=>openPage('RTE'),
+      R6:()=>{
+        if(fmc.route.activated){ openPage('PERF_INIT'); return; }
+        if(fmc.route.origin && fmc.route.dest){
+          fmc.route.activated = true;
+          renderCurrentPage();
+        }
+      },
+    },
+  },
+
+  /* ===== DEP/ARR INDEX 1/1 ===== */
+  DEP_ARR_INDEX: {
+    title: () => '     DEP/ARR INDEX  1/1',
+    lines: () => {
+      const o = box(fmc.route.origin,4);
+      const d = box(fmc.route.dest,4);
+      return [
+        { C:{val:'RTE 1 ('+(fmc.route.activated?'ACT':'MOD')+')'} },
+        { L:{val:'<DEP'},  C:{val:o}, R:{val:'ARR>'} },
+        {                   C:{val:d}, R:{val:'ARR>'} },
+        { C:{val:'--------- RTE 2 ---------'} },
+        { L:{val:'<DEP'},  C:{val:box('',4)}, R:{val:'ARR>'} },
+        { L:{val:'<INDEX'} },
+      ];
+    },
+    lsk: {
+      L2:()=>openPage('DEPARTURES'),
+      R2:()=>openPage('ARRIVALS_ORG'),
+      R3:()=>openPage('ARRIVALS'),
+      L6:()=>openPage('INIT_REF_INDEX'),
+    },
+  },
+
+  /* ===== DEPARTURES (origin) ===== */
+  DEPARTURES: {
+    title: () => '    '+box(fmc.route.origin,4)+' DEPARTURES',
+    lines: () => {
+      const rw = fmc.route.runway;
+      const m = (v)=> (rw===v ? ' <SEL>' : '');
+      return [
+        { L:{label:'SIDS'},                     R:{label:'RUNWAYS'} },
+        { L:{val:'<LACRE3'+m('LACRE3')},        R:{val:(rw==='36L'?'<SEL> ':'')+'36L>'} },
+        { L:{val:'<UMLAS2'+m('UMLAS2')},        R:{val:(rw==='36R'?'<SEL> ':'')+'36R>'} },
+        { L:{val:'<TEBSI1'+m('TEBSI1')},        R:{val:(rw==='18L'?'<SEL> ':'')+'18L>'} },
+        { L:{val:'<BUKOG3'+m('BUKOG3')},        R:{val:(rw==='18R'?'<SEL> ':'')+'18R>'} },
+        { L:{val:'<ERASE'},                     R:{val:'ROUTE>'} },
+      ];
+    },
+    lsk: {
+      R2:()=>{ fmc.route.runway='36L'; renderCurrentPage(); },
+      R3:()=>{ fmc.route.runway='36R'; renderCurrentPage(); },
+      R4:()=>{ fmc.route.runway='18L'; renderCurrentPage(); },
+      R5:()=>{ fmc.route.runway='18R'; renderCurrentPage(); },
+      L6:()=>renderCurrentPage(),
+      R6:()=>openPage('RTE'),
+    },
+  },
+
+  /* ===== ARRIVALS (dest) ===== */
+  ARRIVALS: {
+    title: () => '     '+box(fmc.route.dest,4)+' ARRIVALS',
+    lines: () => [
+      { L:{label:'STARS'},    R:{label:'APPROACHES'} },
+      { L:{val:'<NEGRA1'},    R:{val:'ILS 36>'} },
+      { L:{val:'<ABLON2'},    R:{val:'ILS 18>'} },
+      { L:{val:'<KIPOR3'},    R:{val:'VOR 36>'} },
+      {},
+      { L:{val:'<ERASE'},     R:{val:'ROUTE>'} },
+    ],
+    lsk: { R6:()=>openPage('RTE') },
+  },
+
+  /* ===== ARRIVALS (origin turnback; dummy) ===== */
+  ARRIVALS_ORG: {
+    title: () => '     '+box(fmc.route.origin,4)+' ARRIVALS',
+    lines: () => [
+      { L:{label:'STARS'},    R:{label:'APPROACHES'} },
+      { L:{val:'<---'},       R:{val:'ILS 36>'} },
+      { L:{val:'<---'},       R:{val:'ILS 18>'} },
+      {},
+      {},
+      { L:{val:'<ERASE'},     R:{val:'ROUTE>'} },
+    ],
+    lsk: { R6:()=>openPage('RTE') },
+  },
+
+  /* ===== PERF INIT 1/2 ===== */
+  PERF_INIT: {
+    title: () => '        PERF INIT   1/2',
+    lines: () => [
+      { L:{label:'GW/CRZ CG',  val:dash(fmc.perf.grWt,5)+'/'+dash(fmc.perf.crzCg,3)+'%'},
+        R:{label:'TRIP/CRZ ALT', val:dash('',5)+'/'+dash(fmc.perf.crzAlt,5)} },
+      { L:{label:'PLAN/FUEL',  val:'  '+fmc.perf.planFuel+'/CALC'},
+        R:{label:'CRZ WIND',     val:dash(fmc.perf.crzWindDir,3)+'°/'+dash(fmc.perf.crzWindSpd,3)} },
+      { L:{label:'ZFW',        val:dash(fmc.perf.zfw,5)},
+        R:{label:'T/C OAT',
+           val: (fmc.perf.tcOatC
+                  ? (Math.round(parseFloat(fmc.perf.tcOatC)*9/5 + 32)).toString()
+                  : '---')
+                + '°F/' + dash(fmc.perf.tcOatC,3) + '°C'} },
+      { L:{label:'RESERVES',   val:dash(fmc.perf.reserves,5)},
+        R:{label:'TRANS ALT',    val:fmc.perf.transAlt} },
+      { L:{label:'COST INDEX', val:dash(fmc.perf.costIndex,3)},
+        R:{val:'PERF INIT REQUEST>'} },
+      { L:{val:'<INDEX'}, R:{val:'N1 LIMIT>'} },
+    ],
+    lsk: {
+      L1:{dual:['perf.grWt','perf.crzCg']},   R1:{field:'perf.crzAlt'},
+      /* L2 (PLAN/FUEL) intentionally non-editable: plan fuel is always 9.5 */
+      R2:{dual:['perf.crzWindDir','perf.crzWindSpd']},   /* '220/20' → 220°/20 */
+      L3:{field:'perf.zfw', onSet:(val)=>{
+           /* Auto-compute GW = ZFW + 9.5 when ZFW is entered */
+           if(val && !isNaN(parseFloat(val))){
+             const z = parseFloat(val);
+             const gw = (z + parseFloat(fmc.perf.planFuel||'9.5'));
+             /* Strip trailing .0 for clean display */
+             fmc.perf.grWt = (gw % 1 === 0 ? gw.toString() : gw.toFixed(1));
+           }
+         }},
+      R3:{field:'perf.tcOatC'},   /* user types a °C value; °F auto-derived */
+      L4:{field:'perf.reserves'},R4:{field:'perf.transAlt'},
+      L5:{field:'perf.costIndex'},
+      L6:()=>openPage('INIT_REF_INDEX'),
+      R6:()=>openPage('N1_LIMIT'),
+    },
+  },
+
+  /* ===== PERF LIMITS 2/2 (stub) ===== */
+  PERF_LIMITS: {
+    title: () => '      PERF LIMITS   2/2',
+    lines: () => [
+      { L:{label:'TIME ERROR TOLERANCE', val:'8 SEC AT RTA WPT'} },
+      { L:{label:'MIN SPD--CLB--MAX SPD', val:'100/.400   340/.820'} },
+      { L:{label:'--CRZ--',  val:'100/.400   340/.820'} },
+      { L:{label:'--DES--',  val:'100/.400   340/.820'} },
+      { L:{val:'<PERF LIM REPORT'}, R:{val:'PERF LIM REQUEST>'} },
+      { L:{val:'<INDEX'},           R:{val:'RTA>'} },
+    ],
+    lsk: { L6:()=>openPage('INIT_REF_INDEX') },
+  },
+
+  /* ===== N1 LIMIT 1/1 (preflight) ===== */
+  N1_LIMIT: {
+    title: () => '        N1 LIMIT    1/1',
+    lines: () => {
+      const t = fmc.n1.selectedTO, c = fmc.n1.selectedCLB;
+      const to  = (v, txt)=> (t===v?'<ACT> ':'') + txt;
+      const clb = (v, txt)=> txt + (c===v?' <SEL>':'');
+      return [
+        { L:{label:'SEL/OAT',
+             val:dash(fmc.n1.selTemp,3)+'°/'+dash(fmc.n1.oat,3)+'°C'},
+          R:{label:'26K N1', val:'94.6/94.6'} },
+        { L:{label:'26K',            val:to('TO','<TO')},
+          R:{val:clb('CLB','CLB>')} },
+        { L:{label:'24K  DERATE',    val:to('TO1','<TO-1')},
+          R:{label:'CLB 1',          val:clb('CLB1','CLB-1>')} },
+        { L:{label:'22K  DERATE',    val:to('TO2','<TO-2')},
+          R:{label:'CLB 2',          val:clb('CLB2','CLB-2>')} },
+        {},
+        { L:{val:'<PERF INIT'}, R:{val:'TAKEOFF>'} },
+      ];
+    },
+    lsk: {
+      L1:{dual:['n1.selTemp','n1.oat']},   /* SEL/OAT — '/17' → OAT only */
+      /* R1 (26K N1) is read-only */
+      L2:()=>{ fmc.n1.selectedTO='TO';  fmc.n1.selectedCLB='CLB';  renderCurrentPage(); },
+      R2:()=>{ fmc.n1.selectedCLB='CLB'; renderCurrentPage(); },
+      L3:()=>{ fmc.n1.selectedTO='TO1'; fmc.n1.selectedCLB='CLB1'; renderCurrentPage(); },
+      R3:()=>{ fmc.n1.selectedCLB='CLB1'; renderCurrentPage(); },
+      L4:()=>{ fmc.n1.selectedTO='TO2'; fmc.n1.selectedCLB='CLB2'; renderCurrentPage(); },
+      R4:()=>{ fmc.n1.selectedCLB='CLB2'; renderCurrentPage(); },
+      L6:()=>openPage('PERF_INIT'),
+      R6:()=>openPage('TAKEOFF_REF'),
+    },
+  },
+
+  /* ===== TAKEOFF REF 1/2 ===== */
+  TAKEOFF_REF: {
+    title: () => '      TAKEOFF REF   1/2',
+    lines: () => [
+      { L:{label:'FLAPS',    val:dash(fmc.takeoff.flaps,2)+'°'},
+        R:{label:'V1',       val:dash(fmc.takeoff.v1,3)+'KT'} },
+      { L:{label:'26K N1',   val:'94.6/94.6%'},
+        R:{label:'VR',       val:dash(fmc.takeoff.vr,3)+'KT'} },
+      { L:{label:'CG       TRIM', val:dash(fmc.takeoff.cg,4)+'%  '+dash('',4)},
+        R:{label:'V2',       val:dash(fmc.takeoff.v2,3)+'KT'} },
+      { L:{val:'<TAKEOFF DATA REQUEST'},
+        R:{label:'GW/TOW',   val:dash(fmc.perf.grWt,5)+'/'+dash('',5)} },
+      { L:{label:'INTERSECT', val:dash(fmc.takeoff.intersect,3)+'/'+(fmc.route.runway?'RW'+fmc.route.runway:'-----')},
+        R:{label:'SELECT',    val:'QRH OFF>'} },
+      { L:{val: preflightComplete() ? '<INDEX' : '<PERF INIT'} },
+    ],
+    lsk: {
+      L1:{field:'takeoff.flaps'},   R1:{field:'takeoff.v1'},
+                                    R2:{field:'takeoff.vr'},
+      L3:{field:'takeoff.cg'},      R3:{field:'takeoff.v2'},
+      L5:{field:'takeoff.intersect'},
+      L6:()=> preflightComplete() ? openPage('INIT_REF_INDEX') : openPage('PERF_INIT'),
+    },
+  },
+
+  /* ===== TAKEOFF REF 2/2 ===== */
+  TAKEOFF_REF_2: {
+    title: () => '      TAKEOFF REF   2/2',
+    lines: () => [
+      { L:{label:'RW WIND',  val:dash(fmc.takeoff.rwWind,3)+'°/---'},
+        R:{label:'RW COND',  val:(fmc.takeoff.rwCond==='DRY'?'*DRY/':'DRY/') +
+                                (fmc.takeoff.rwCond==='WET'?'*WET/':'WET/') +
+                                (fmc.takeoff.rwCond==='SK-R'?'*SK-R':'SK-R')+'>'} },
+      { L:{label:'RW SLOPE/HDG', val:dash(fmc.takeoff.rwSlope,3)+'%/---°'} },
+      { L:{label:'ACCEL HT',     val:fmc.takeoff.accelHt+' AGL'},
+        R:{label:'EO ACCEL HT',  val:fmc.takeoff.eoAccelHt+' AGL'} },
+      { L:{label:'REDUCTION',    val:fmc.takeoff.reduction+' AGL'} },
+      {},
+      { L:{val:'<INDEX'} },
+    ],
+    lsk: {
+      L1:{field:'takeoff.rwWind'},
+      R1:()=>{
+        const order=['DRY','WET','SK-R'];
+        const i = order.indexOf(fmc.takeoff.rwCond);
+        fmc.takeoff.rwCond = order[(i+1)%order.length];
+        renderCurrentPage();
+      },
+      L2:{field:'takeoff.rwSlope'},
+      L3:{field:'takeoff.accelHt'}, R3:{field:'takeoff.eoAccelHt'},
+      L4:{field:'takeoff.reduction'},
+      L6:()=>openPage('INIT_REF_INDEX'),
+    },
+  },
+
+  /* ===== MENU ===== */
+  MENU: {
+    title: () => '         MENU       1/1',
+    lines: () => [
+      { L:{val:'<FMC', hi:true}, R:{val:'<ACT>'} },
+      { L:{val:'<ACARS'} },
+      { L:{val:'<ATC'} },
+      { L:{val:'<SATCOM'} },
+      {},
+      {},
+    ],
+    lsk: { L1:()=>openPage('INIT_REF_INDEX') },
+  },
+
+  /* ===== stubs for other function keys (visual only) ===== */
+  LEGS: {
+    title: () => '     ACT RTE LEGS   1/X',
+    lines: () => [
+      { L:{label:'',           val:box(fmc.route.origin,4)+'      ---°/---'} },
+      { L:{label:'  ---NM',    val:'-----'} },
+      { L:{val:'-----'} },
+      { L:{val:'-----'} },
+      { L:{val:'-----'} },
+      { L:{val:'<RTE LEGS'}, R:{val:'RTE DATA>'} },
+    ],
+    lsk: {},
+  },
+  HOLD: {
+    title: () => '         HOLD       1/1',
+    lines: () => [
+      { R:{label:'FIX',      val:'-----'} },
+      { L:{label:'INBD CRS', val:'---°'},
+        R:{label:'TURN DIR', val:'R'} },
+      { L:{label:'LEG TIME', val:'1.0 MIN'},
+        R:{label:'LEG DIST', val:'---NM'} },
+      { L:{label:'EFC TIME', val:'-----'} },
+      {},
+      { L:{val:'<ERASE'}, R:{val:'HOLD AT>'} },
+    ],
+    lsk: {},
+  },
+  PROG: {
+    title: () => '       PROGRESS     1/2',
+    lines: () => [
+      { L:{label:'LAST',   val:'-----'}, R:{label:'DTG',  val:'---'} },
+      { L:{label:'FROM',   val:'-----'}, R:{label:'ETA',  val:'----'} },
+      { L:{label:'TO',     val:'-----'}, R:{label:'FUEL', val:'---.-'} },
+      { L:{label:'NEXT',   val:'-----'} },
+      { L:{label:'DEST',   val:box(fmc.route.dest,4)} },
+      { L:{val:'<RTE'}, R:{val:'POS REPORT>'} },
+    ],
+    lsk: {},
+  },
+  FIX: {
+    title: () => '       FIX INFO     1/2',
+    lines: () => [
+      { L:{label:'FIX',     val:'-----'} },
+      { L:{label:'BRG/DIS', val:'---°/---'} },
+      { L:{label:'ALT',     val:'-----'} },
+      {},
+      {},
+      { L:{val:'<ERASE'} },
+    ],
+    lsk: {},
+  },
+  CLB: {
+    title: () => '      ACT ECON CLB',
+    lines: () => [
+      { L:{label:'CRZ ALT',   val:dash(fmc.perf.crzAlt,5)},
+        R:{label:'AT',        val:'-----'} },
+      { L:{label:'TGT SPD',   val:'---/---'},
+        R:{label:'SPD REST',  val:'---/-----'} },
+      { L:{label:'SEL SPD',   val:'---'} },
+      {},
+      { L:{label:'ENG OUT'}, R:{label:'RTA'} },
+      { L:{val:'<ERASE'}, R:{val:'CRZ>'} },
+    ],
+    lsk: { R6:()=>openPage('CRZ') },
+  },
+  CRZ: {
+    title: () => '      ACT ECON CRZ',
+    lines: () => [
+      { L:{label:'CRZ ALT', val:dash(fmc.perf.crzAlt,5)},
+        R:{label:'STEP',    val:'ICAO/100'} },
+      { L:{label:'TGT SPD', val:'M.78/270'} },
+      {},
+      { L:{label:'N1',      val:'---.-%'} },
+      {},
+      { L:{val:'<CLB'}, R:{val:'DES>'} },
+    ],
+    lsk: { L6:()=>openPage('CLB'), R6:()=>openPage('DES') },
+  },
+  DES: {
+    title: () => '      ACT ECON DES',
+    lines: () => [
+      { L:{label:'E/D',       val:'-----'}, R:{label:'AT',        val:'-----'} },
+      { L:{label:'TGT SPD',   val:'---/---'}, R:{label:'SPD REST',  val:'---/-----'} },
+      {}, {}, {},
+      { L:{val:'<CRZ'}, R:{val:'FORECAST>'} },
+    ],
+    lsk: { L6:()=>openPage('CRZ') },
+  },
+};
+
+function preflightComplete(){
+  return !!(fmc.route.activated && fmc.perf.grWt && fmc.perf.crzAlt &&
+            fmc.takeoff.flaps && fmc.takeoff.v1 && fmc.takeoff.vr && fmc.takeoff.v2);
+}
+
+/* Function key → which page to open */
+const FN_ROUTES = {
+  INIT_REF: 'INIT_REF_INDEX',
+  RTE:      'RTE',
+  CLB:      'CLB',
+  CRZ:      'CRZ',
+  DES:      'DES',
+  MENU:     'MENU',
+  LEGS:     'LEGS',
+  DEP_ARR:  'DEP_ARR_INDEX',
+  HOLD:     'HOLD',
+  PROG:     'PROG',
+  N1_LIMIT: 'N1_LIMIT',
+  FIX:      'FIX',
+};
+
+/* ============================================================
+   RENDERING
+   ============================================================ */
+const $title = document.getElementById('screenTitle');
+const $scratchpad = document.getElementById('scratchpad');
+const lineEls = [];
+for(let i=0;i<6;i++){
+  lineEls.push({
+    el: document.querySelector(`.screen-line[data-row="${i}"]`),
+    LL: document.getElementById(`line-${i}-LL`), LV: document.getElementById(`line-${i}-LV`),
+    RL: document.getElementById(`line-${i}-RL`), RV: document.getElementById(`line-${i}-RV`),
+    CL: document.getElementById(`line-${i}-CL`), CV: document.getElementById(`line-${i}-CV`),
+  });
+}
+
+function setCell(labelEl, valEl, cell){
+  cell = cell || {};
+  labelEl.textContent = cell.label || '';
+  valEl.textContent   = (cell.val !== undefined && cell.val !== null) ? cell.val : '';
+  let cls = 'value';
+  if(cell.cls)   cls += ' ' + cell.cls;
+  if(cell.hi)    cls += ' hi';
+  if(cell.small) cls += ' small';
+  valEl.className = cls;
+}
+
+function renderCurrentPage(){
+  const p = PAGES[fmc.ui.currentPage];
+  if(!p){ return; }
+  const title = typeof p.title === 'function' ? p.title() : p.title;
+  const lines = typeof p.lines === 'function' ? p.lines() : p.lines;
+  $title.textContent = title || '';
+  for(let i=0;i<6;i++){
+    const line = lines[i] || {};
+    const els = lineEls[i];
+    setCell(els.LL, els.LV, line.L);
+    setCell(els.RL, els.RV, line.R);
+    setCell(els.CL, els.CV, line.C);
+    els.el.classList.toggle('has-center', !!line.C);
+  }
+}
+
+function renderScratchpad(){
+  $scratchpad.textContent = state.scratchpad;
+  $scratchpad.classList.toggle('msg', state.scratchpadIsMsg);
+}
+
+function render(){ renderCurrentPage(); renderScratchpad(); }
+
+/* ============================================================
+   SCRATCHPAD STATE MACHINE
    ============================================================ */
 const SCRATCHPAD_MAX = 22;
 const CLR_HOLD_MS    = 1000;
@@ -345,31 +955,15 @@ const CLR_HOLD_MS    = 1000;
 const state = {
   scratchpad:'',
   scratchpadIsMsg:false,
-  lines:Array.from({length:6},()=>({left:'',right:''})),
   plusMinusActive:false,
 };
-
-const $scratchpad = document.getElementById('scratchpad');
-const $linesL = []; const $linesR = [];
-for(let i=0;i<6;i++){
-  $linesL.push(document.getElementById(`line-${i}-L`));
-  $linesR.push(document.getElementById(`line-${i}-R`));
-}
-
-function render(){
-  for(let i=0;i<6;i++){
-    $linesL[i].textContent = state.lines[i].left  === '' ? '------' : state.lines[i].left;
-    $linesR[i].textContent = state.lines[i].right === '' ? '------' : state.lines[i].right;
-  }
-  $scratchpad.textContent = state.scratchpad;
-}
 
 function appendChar(c){
   if(state.scratchpadIsMsg){ state.scratchpad=''; state.scratchpadIsMsg=false; }
   if(state.scratchpad.length >= SCRATCHPAD_MAX) return;
   state.scratchpad += c;
   state.plusMinusActive = false;
-  render();
+  renderScratchpad();
 }
 
 function pressPlusMinus(){
@@ -378,13 +972,13 @@ function pressPlusMinus(){
     const last = state.scratchpad.slice(-1);
     if(last === '-' || last === '+'){
       state.scratchpad = state.scratchpad.slice(0,-1) + (last === '-' ? '+' : '-');
-      render(); return;
+      renderScratchpad(); return;
     }
   }
   if(state.scratchpad.length >= SCRATCHPAD_MAX) return;
   state.scratchpad += '-';
   state.plusMinusActive = true;
-  render();
+  renderScratchpad();
 }
 
 function pressSpace(){ appendChar(' '); }
@@ -392,12 +986,9 @@ function pressSpace(){ appendChar(' '); }
 function pressDelete(){
   if(state.scratchpad === 'DELETE') return;
   state.scratchpad = 'DELETE';
-  // "DELETE" is a functional command block, not typed text.
-  // Flagging it as msg means CLR (short) wipes the whole word at once,
-  // and any character/+/− input replaces it entirely. (Per FCOM.)
   state.scratchpadIsMsg = true;
   state.plusMinusActive = false;
-  render();
+  renderScratchpad();
 }
 
 function clrShortPress(){
@@ -407,77 +998,231 @@ function clrShortPress(){
     state.scratchpad = state.scratchpad.slice(0,-1);
   }
   state.plusMinusActive = false;
-  render();
+  renderScratchpad();
 }
 function clrLongPress(){
   state.scratchpad=''; state.scratchpadIsMsg=false; state.plusMinusActive=false;
-  render();
+  renderScratchpad();
 }
 
-function pressLSK(id){
-  const side = id[0];                       // 'L' or 'R'
-  const idx  = parseInt(id.slice(1),10) - 1;
-  if(idx<0||idx>5) return;
-  const slot = side === 'L' ? 'left' : 'right';
-  const lineVal = state.lines[idx][slot];
+/* ============================================================
+   LSK DISPATCH — page-aware
+   ============================================================ */
+function pressLSK(lskId){
+  const page = PAGES[fmc.ui.currentPage];
+  if(!page) return;
+  const binding = (page.lsk || {})[lskId];
+  if(!binding) return;
 
-  if(state.scratchpad === 'DELETE'){
-    state.lines[idx][slot] = '';
-    state.scratchpad = ''; state.scratchpadIsMsg = false; state.plusMinusActive = false;
+  if(typeof binding === 'function'){
+    if(state.scratchpadIsMsg && state.scratchpad === 'DELETE') return;
+    binding();
+    return;
+  }
+  if(binding.dual){
+    handleDualFieldTransfer(binding.dual[0], binding.dual[1], !!binding.mod, binding.onSet);
+    return;
+  }
+  if(binding.field){
+    handleFieldTransfer(binding.field, !!binding.mod, binding.onSet);
+  }
+}
+
+function handleFieldTransfer(fieldPath, markModified, onSet){
+  const cur = getField(fieldPath) || '';
+
+  /* DELETE → clear field (only if DEL key was used, not typed letters) */
+  if(state.scratchpadIsMsg && state.scratchpad === 'DELETE'){
+    setField(fieldPath, '');
+    if(markModified) markRouteMod(fieldPath);
+    if(typeof onSet === 'function') onSet('');
+    state.scratchpad=''; state.scratchpadIsMsg=false; state.plusMinusActive=false;
     render(); return;
   }
 
-  const sp = state.scratchpad;
-  if(sp.length === 0 && lineVal.length === 0) return;
-
-  if(sp.length === 0){
-    // COPY line → scratchpad (line stays intact — FCOM behavior)
-    state.scratchpad = lineVal; state.scratchpadIsMsg = false;
+  if(state.scratchpad.length === 0){
+    /* COPY field to scratchpad (don't clear field) */
+    if(cur.length > 0){
+      state.scratchpad = cur;
+      state.scratchpadIsMsg = false;
+    }
   } else {
-    // Scratchpad has text → overwrite line, scratchpad cleared
-    state.lines[idx][slot] = sp;
-    state.scratchpad = ''; state.scratchpadIsMsg = false;
+    /* Transfer scratchpad → field, clear scratchpad */
+    const val = state.scratchpad;
+    setField(fieldPath, val);
+    if(markModified) markRouteMod(fieldPath);
+    if(typeof onSet === 'function') onSet(val);
+    state.scratchpad=''; state.scratchpadIsMsg=false;
   }
   state.plusMinusActive = false;
   render();
 }
 
-function resetAll(){
-  state.scratchpad=''; state.scratchpadIsMsg=false; state.plusMinusActive=false;
-  state.lines = Array.from({length:6},()=>({left:'',right:''}));
+/* ---- Dual-field transfer: '/22' → second only, '680/' → first only,
+   '680/22' → both, no slash → first field ---- */
+function handleDualFieldTransfer(firstPath, secondPath, markModified, onSet){
+  const curA = getField(firstPath) || '';
+  const curB = getField(secondPath) || '';
+
+  /* DELETE → clear both (only if DEL key was used) */
+  if(state.scratchpadIsMsg && state.scratchpad === 'DELETE'){
+    setField(firstPath, '');  setField(secondPath, '');
+    if(markModified){ markRouteMod(firstPath); markRouteMod(secondPath); }
+    if(typeof onSet === 'function') onSet('', '');
+    state.scratchpad=''; state.scratchpadIsMsg=false; state.plusMinusActive=false;
+    render(); return;
+  }
+
+  if(state.scratchpad.length === 0){
+    /* COPY joined fields back to scratchpad */
+    let joined = '';
+    if(curA && curB)      joined = curA+'/'+curB;
+    else if(curA)          joined = curA;
+    else if(curB)          joined = '/'+curB;
+    if(joined){ state.scratchpad = joined; state.scratchpadIsMsg = false; }
+  } else {
+    const sp = state.scratchpad;
+    const slash = sp.indexOf('/');
+    let aNew = curA, bNew = curB;
+    if(slash === -1){                       /* '680' → first field */
+      aNew = sp;
+    } else if(slash === 0){                 /* '/22' → second field only */
+      bNew = sp.slice(1);
+    } else if(slash === sp.length-1){       /* '680/' → first field only */
+      aNew = sp.slice(0, -1);
+    } else {                                /* '680/22' → both */
+      aNew = sp.slice(0, slash);
+      bNew = sp.slice(slash+1);
+    }
+    setField(firstPath, aNew);
+    setField(secondPath, bNew);
+    if(markModified){ markRouteMod(firstPath); markRouteMod(secondPath); }
+    if(typeof onSet === 'function') onSet(aNew, bNew);
+    state.scratchpad=''; state.scratchpadIsMsg=false;
+  }
+  state.plusMinusActive = false;
   render();
 }
 
+/* Copy a displayed coord/value into the scratchpad (POS REF LSKs) */
+function copyCoordToScratch(val){
+  state.scratchpad = val;
+  state.scratchpadIsMsg = false;
+  state.plusMinusActive = false;
+  renderScratchpad();
+}
+
+function markRouteMod(fieldPath){
+  if(fieldPath.startsWith('route.') && fmc.route.activated){
+    fmc.route.modified = true;
+    fmc.route.activated = false;    /* activation is lost until re-activated */
+  } else if(fieldPath.startsWith('route.')){
+    fmc.route.modified = true;
+  }
+}
+
 /* ============================================================
-   Event wiring — pointerdown for snappy iPad
+   NAVIGATION
+   ============================================================ */
+function openPage(id){
+  if(!PAGES[id]) return;
+  const changed = (fmc.ui.currentPage !== id);
+  if(changed){
+    fmc.ui.pageStack.push(fmc.ui.currentPage);
+    if(fmc.ui.pageStack.length > 20) fmc.ui.pageStack.shift();
+  }
+  fmc.ui.currentPage = id;
+  /* per-page onEnter hook (only when navigating TO a new page) */
+  if(changed && typeof PAGES[id].onEnter === 'function'){
+    PAGES[id].onEnter();
+  }
+  render();
+}
+
+function pressFn(id){
+  const dest = FN_ROUTES[id];
+  if(dest) openPage(dest);
+}
+
+/* PREV/NEXT page — cycle within the active page family */
+const PAGE_CYCLES = {
+  RTE:['RTE','RTE2'], RTE2:['RTE','RTE2'],
+  POS_INIT:['POS_INIT','POS_REF','POS_SHIFT'],
+  POS_REF:['POS_INIT','POS_REF','POS_SHIFT'],
+  POS_SHIFT:['POS_INIT','POS_REF','POS_SHIFT'],
+  TAKEOFF_REF:['TAKEOFF_REF','TAKEOFF_REF_2'],
+  TAKEOFF_REF_2:['TAKEOFF_REF','TAKEOFF_REF_2'],
+  PERF_INIT:['PERF_INIT','PERF_LIMITS'],
+  PERF_LIMITS:['PERF_INIT','PERF_LIMITS'],
+};
+function step(dir){
+  const cycle = PAGE_CYCLES[fmc.ui.currentPage];
+  if(!cycle) return;
+  const i = cycle.indexOf(fmc.ui.currentPage);
+  const n = cycle.length;
+  const next = cycle[(i + (dir>0?1:-1) + n) % n];
+  openPage(next);
+}
+function pressPrevPage(){ step(-1); }
+function pressNextPage(){ step(+1); }
+
+function resetAll(){
+  state.scratchpad=''; state.scratchpadIsMsg=false; state.plusMinusActive=false;
+  /* reset all user-entered data, keep IDENT */
+  fmc.posInit = {
+    lastPos:'N41°15.7 E028°44.8',
+    refAirport:'', gate:'',
+    gmtMonDy:'1432.2z 11/20',
+    setIrsHdg:'', setIrsPos:'',
+  };
+  fmc.route = { origin:'', dest:'', coRoute:'', fltNo:'', runway:'', activated:false, modified:false };
+  fmc.perf  = { grWt:'', zfw:'', crzCg:'', reserves:'', costIndex:'',
+                crzAlt:'', crzWindDir:'', crzWindSpd:'',
+                tcOatC:'', transAlt:'10000', planFuel:'9.5' };
+  fmc.n1    = { selectedTO:'TO', selectedCLB:'CLB', selTemp:'', oat:'' };
+  fmc.takeoff = { flaps:'', cg:'', v1:'', vr:'', v2:'',
+                  intersect:'', rwWind:'', rwCond:'DRY', rwSlope:'',
+                  accelHt:'1000', eoAccelHt:'1000', reduction:'800' };
+  fmc.ui.pageStack = [];
+  openPage('IDENT');
+  renderScratchpad();
+}
+
+/* ============================================================
+   EVENT WIRING
    ============================================================ */
 function flash(el){ el.classList.add('is-pressed'); setTimeout(()=>el.classList.remove('is-pressed'),70); }
 
 function dispatch(btn){
   const kind = btn.dataset.kind;
   const id   = btn.dataset.id;
-  if(kind === 'noop') return;
-  if(kind === 'lsk' ) return pressLSK(id);
-  if(kind === 'char') return appendChar(id);
+  if(kind === 'noop')   return;
+  if(kind === 'lsk' )   return pressLSK(id);
+  if(kind === 'char')   return appendChar(id);
+  if(kind === 'fn'){
+    if(id === 'PREV_PAGE') return pressPrevPage();
+    if(id === 'NEXT_PAGE') return pressNextPage();
+    if(id === 'EXEC')      return;
+    return pressFn(id);
+  }
   if(kind === 'action'){
     if(id === 'PM')  return pressPlusMinus();
     if(id === 'SP')  return pressSpace();
     if(id === 'DEL') return pressDelete();
   }
-  // 'clr' handled separately via long-press logic below
 }
 
 overlay.querySelectorAll('.btn').forEach(btn=>{
   btn.addEventListener('pointerdown',(e)=>{
     e.preventDefault();
     flash(btn);
-    if(btn.dataset.kind === 'clr') return;  // handled by CLR wiring
+    if(btn.dataset.kind === 'clr') return;
     dispatch(btn);
   });
   btn.addEventListener('click', e=>e.preventDefault());
 });
 
-/* CLR — long-press ≥ 1s clears whole scratchpad, short-press backspaces */
+/* CLR — long-press ≥1s wipes scratchpad; short-press backspaces */
 (function wireCLR(){
   const clr = document.getElementById('clrKey');
   if(!clr) return;
@@ -507,14 +1252,17 @@ if('serviceWorker' in navigator){
   });
 }
 
+/* Initial render */
+openPage('IDENT');
 render();
 
-/* Public hooks — future dictation mode / stats */
+/* Public API */
 window.CDU = {
-  getState: ()=> JSON.parse(JSON.stringify(state)),
-  setScratchpad: (s)=>{ state.scratchpad=String(s||''); state.scratchpadIsMsg=false; render(); },
-  reset: resetAll,
+  getState: ()=> JSON.parse(JSON.stringify({ state, fmc })),
+  open: openPage,
   press: (id)=>{ const b = overlay.querySelector(`[data-id="${id}"]`); if(b){ flash(b); dispatch(b); } },
+  reset: resetAll,
+  fmc,
 };
 </script>
 </body>
