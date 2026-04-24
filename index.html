@@ -13,7 +13,10 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=B612+Mono:wght@400;700&display=swap" rel="stylesheet">
+<!-- Share Tech Mono → slashed zero is the DEFAULT glyph (no OpenType feature
+     toggle required, so it renders reliably on iOS Safari). B612 Mono kept
+     as a secondary fallback; we'll only see it if Share Tech Mono fails. -->
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=B612+Mono:wght@400;700&display=swap" rel="stylesheet">
 <title>CDU Trainer</title>
 <style>
 /* ============================================================
@@ -30,14 +33,21 @@
 }
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation}
-html,body{height:100%;margin:0;padding:0;background:var(--bg-page);overflow:hidden;font-family:'B612 Mono',ui-monospace,Menlo,Consolas,monospace;color:#ddd}
+html,body{margin:0;padding:0;background:var(--bg-page);overflow:hidden;
+  font-family:'Share Tech Mono','JetBrains Mono','B612 Mono',ui-monospace,Menlo,Consolas,monospace;color:#ddd}
+/* Use dvh (dynamic viewport) so iPad standalone PWA mode accounts for the
+   home-indicator area and doesn't clip the bottom row of buttons. */
+html,body{height:100dvh;min-height:100dvh}
+@supports not (height: 100dvh){ html,body{height:100vh;min-height:100vh} }
 
 body{
   display:flex;align-items:center;justify-content:center;
-  padding: max(env(safe-area-inset-top), 6px)
-           max(env(safe-area-inset-right), 6px)
-           max(env(safe-area-inset-bottom), 6px)
-           max(env(safe-area-inset-left), 6px);
+  padding: max(env(safe-area-inset-top), 4px)
+           max(env(safe-area-inset-right), 4px)
+           /* Extra breathing room at the bottom for the iPad home-indicator
+              even when the reported inset is 0 (Safari inconsistency). */
+           calc(max(env(safe-area-inset-bottom), 4px) + 4px)
+           max(env(safe-area-inset-left), 4px);
 }
 
 .rotate-warning{display:none;position:fixed;inset:0;background:#000;color:#eee;align-items:center;justify-content:center;text-align:center;z-index:9999;padding:24px;font-size:16px;letter-spacing:.04em}
@@ -46,16 +56,21 @@ body{
   .app{display:none!important}
 }
 
+/* Stage fits inside the body's content box (which already subtracts safe-area
+   padding). height/width:100% lets the flex parent + aspect-ratio scale it to
+   whichever dimension is the binding constraint. */
 .stage{
   position:relative;
   aspect-ratio: 2088 / 3160;
   height: 100%;
-  max-height: 100vh;
-  max-width: 100vw;
+  width:  auto;
+  max-height: 100%;
+  max-width:  100%;
   margin: auto;
 }
-@media (min-aspect-ratio: 2088/3160){ .stage{ width:auto; height:100vh; } }
-@media (max-aspect-ratio: 2088/3160){ .stage{ width:100vw; height:auto; } }
+@media (max-aspect-ratio: 2088/3160){
+  .stage{ width:100%; height:auto; }
+}
 
 .reset-btn{
   position:fixed;top:calc(env(safe-area-inset-top) + 8px);right:10px;
@@ -85,15 +100,20 @@ body{
   grid-template-rows: 1fr repeat(6, 2.1fr) 1.1fr;
   padding: 2.0% 2.0%;
   gap: 0.2%;
-  font-family: 'B612 Mono',ui-monospace,Menlo,Consolas,monospace;
-  font-weight:700;
+  /* Share Tech Mono has slashed-zero as its default glyph — this is what
+     makes 0 visibly different from O on the real CDU. */
+  font-family: 'Share Tech Mono','JetBrains Mono','B612 Mono',ui-monospace,Menlo,Consolas,monospace;
+  font-weight:400;                 /* Share Tech Mono only ships weight 400 */
   color:var(--cdu-white);
   letter-spacing:.04em;
   line-height:1.0;
-  text-shadow:0 0 2px rgba(255,255,255,.18);
+  /* Stronger glow compensates for Share Tech Mono's single-weight strokes
+     and mimics the phosphor-ish halo of a real CDU. */
+  text-shadow:0 0 3px rgba(255,255,255,.35), 0 0 1px rgba(255,255,255,.9);
   font-size: clamp(10px, 2.0vw, 22px);
 
-  /* Slashed zero — real CDU typography, distinguishes 0 from O */
+  /* Belt & braces: if the fallback font (B612 Mono) is ever used, still
+     request slashed-zero where the feature exists. */
   font-variant-numeric: slashed-zero;
   font-feature-settings: "zero" 1, "ss01" 1;
 
@@ -145,14 +165,14 @@ body{
   letter-spacing:.05em;
   line-height:1;
   white-space:pre;
-  font-weight:700;
+  font-weight:400;        /* Share Tech Mono ships single-weight; the text-shadow adds glow */
 }
 .screen-line .value{
   font-size:1em;
   color:var(--cdu-white);
   line-height:1;
   white-space:pre;
-  font-weight:700;
+  font-weight:400;        /* Share Tech Mono ships single-weight; the text-shadow adds glow */
 }
 .screen-line .value.small{ font-size:.72em; }
 .screen-line .value.hi{
@@ -169,7 +189,7 @@ body{
   border-top:1px solid rgba(255,255,255,.06);
   height:100%;
   display:flex;align-items:center;
-  font-weight:700;
+  font-weight:400;        /* Share Tech Mono ships single-weight; the text-shadow adds glow */
   letter-spacing:.05em;
 }
 .screen-scratchpad.msg{ color:var(--cdu-white); }
